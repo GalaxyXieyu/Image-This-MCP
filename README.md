@@ -68,7 +68,36 @@ Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
 #### 1. API Key Authentication (Default)
 Set `GEMINI_API_KEY` environment variable.
 
-#### 2. Vertex AI Authentication (Google Cloud)
+#### 2. Third-Party Banana API Support
+You can use third-party Banana API services that are compatible with Gemini API by setting a custom API base URL:
+
+```bash
+# Set your third-party API key
+export GEMINI_API_KEY="your-third-party-api-key"
+
+# Set the custom API base URL
+export GEMINI_API_BASE_URL="https://your-banana-api-endpoint.com/v1"
+# or
+export BANANA_API_BASE_URL="https://your-banana-api-endpoint.com/v1"
+```
+
+**Example Configuration** (Claude Desktop):
+```json
+{
+  "mcpServers": {
+    "nanobanana": {
+      "command": "uvx",
+      "args": ["nanobanana-mcp-server@latest"],
+      "env": {
+        "GEMINI_API_KEY": "your-third-party-api-key",
+        "GEMINI_API_BASE_URL": "https://your-banana-api-endpoint.com/v1"
+      }
+    }
+  }
+}
+```
+
+#### 3. Vertex AI Authentication (Google Cloud)
 Required environment variables:
 - `NANOBANANA_AUTH_METHOD=vertex_ai` (or `auto`)
 - `GCP_PROJECT_ID=your-project-id`
@@ -369,8 +398,14 @@ Configuration options:
 
 ```bash
 # Authentication (Required)
-# Method 1: API Key
+# Method 1: API Key (Google Gemini API or Third-party Banana API)
 GEMINI_API_KEY=your-gemini-api-key-here
+
+# Third-party Banana API Configuration (Optional)
+# If using a third-party Banana API service, set the custom base URL:
+GEMINI_API_BASE_URL=https://your-banana-api-endpoint.com/v1
+# or
+BANANA_API_BASE_URL=https://your-banana-api-endpoint.com/v1
 
 # Method 2: Vertex AI (Google Cloud)
 NANOBANANA_AUTH_METHOD=vertex_ai
@@ -411,7 +446,7 @@ For local development:
 
 ```bash
 # Clone repository
-git clone https://github.com/zhongweili/nanobanana-mcp-server.git
+git clone https://github.com/GalaxyXieyu/Image-This-MCP.git
 cd nanobanana-mcp-server
 
 # Install with uv
@@ -430,5 +465,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/zhongweili/nanobanana-mcp-server/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/zhongweili/nanobanana-mcp-server/discussions)
+- **Issues**: [GitHub Issues](https://github.com/GalaxyXieyu/Image-This-MCP/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/GalaxyXieyu/Image-This-MCP/discussions)

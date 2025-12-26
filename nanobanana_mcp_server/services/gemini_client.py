@@ -36,8 +36,17 @@ class GeminiClient:
             if self.config.auth_method == AuthMethod.API_KEY:
                 if not self.config.gemini_api_key:
                     raise AuthenticationError("API key is required for API_KEY auth method")
-                self._client = genai.Client(api_key=self.config.gemini_api_key)
-                self._log_auth_method("API Key (Developer API)")
+                
+                client_kwargs = {"api_key": self.config.gemini_api_key}
+                
+                if self.config.api_base_url:
+                    http_options = gx.HttpOptions(baseUrl=self.config.api_base_url)
+                    client_kwargs["http_options"] = http_options
+                    self._log_auth_method(f"API Key (Third-party Banana API: {self.config.api_base_url})")
+                else:
+                    self._log_auth_method("API Key (Developer API)")
+                
+                self._client = genai.Client(**client_kwargs)
             else:  # VERTEX_AI
                 self._client = genai.Client(
                     vertexai=True,

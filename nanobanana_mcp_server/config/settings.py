@@ -51,6 +51,7 @@ class ServerConfig:
     auth_method: AuthMethod = AuthMethod.AUTO
     gcp_project_id: str | None = None
     gcp_region: str = "us-central1"
+    api_base_url: str | None = None  # Custom API base URL for third-party Banana API
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -67,6 +68,7 @@ class ServerConfig:
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         gcp_project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
         gcp_region = os.getenv("GCP_REGION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
+        api_base_url = os.getenv("GEMINI_API_BASE_URL") or os.getenv("BANANA_API_BASE_URL")
 
         # Validation logic
         if auth_method == AuthMethod.API_KEY:
@@ -105,6 +107,7 @@ class ServerConfig:
             port=int(os.getenv("FASTMCP_PORT", "9000")),
             mask_error_details=os.getenv("FASTMCP_MASK_ERRORS", "false").lower() == "true",
             image_output_dir=str(output_path),
+            api_base_url=api_base_url,
         )
 
 

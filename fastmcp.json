@@ -42,6 +42,14 @@
         "required": false,
         "description": "Alternative name for Gemini API key"
       },
+      "GEMINI_API_BASE_URL": {
+        "required": false,
+        "description": "Custom API base URL for third-party Banana API services (e.g., https://your-api-endpoint.com/v1)"
+      },
+      "BANANA_API_BASE_URL": {
+        "required": false,
+        "description": "Alternative name for custom API base URL"
+      },
       "LOG_LEVEL": {
         "required": false,
         "default": "INFO",

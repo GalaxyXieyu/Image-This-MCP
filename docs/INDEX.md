@@ -193,8 +193,8 @@ scripts/
 
 ## 🆘 Support & Resources
 
-- **Issues:** [GitHub Issues](https://github.com/zhongweili/nanobanana-mcp-server/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/zhongweili/nanobanana-mcp-server/discussions)
+- **Issues:** [GitHub Issues](https://github.com/GalaxyXieyu/Image-This-MCP/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/GalaxyXieyu/Image-This-MCP/discussions)
 - **Package:** [PyPI Package](https://pypi.org/project/nanobanana-mcp-server/)
 
 ---

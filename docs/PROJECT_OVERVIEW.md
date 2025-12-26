@@ -156,7 +156,7 @@ graph LR
 ## 🛠️ Development Workflow
 
 ### Development Environment
-1. **Clone Repository** - `git clone https://github.com/zhongweili/nanobanana-mcp-server.git`
+1. **Clone Repository** - `git clone https://github.com/GalaxyXieyu/Image-This-MCP.git`
 2. **Install Dependencies** - `uv sync`
 3. **Environment Setup** - Copy `.env.example` and add API key
 4. **Local Development** - `uv run python -m nanobanana_mcp_server.server`

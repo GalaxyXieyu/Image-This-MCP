@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "name": "io.github.zhongweili/nanobanana-mcp-server",
+  "name": "io.github.GalaxyXieyu/image-this-mcp",
   "description": "AI image generation with Gemini 3 Pro (4K) and 2.5 Flash. Smart model selection.",
   "repository": {
-    "url": "https://github.com/zhongweili/nanobanana-mcp-server",
+    "url": "https://github.com/GalaxyXieyu/Image-This-MCP",
     "source": "github"
   },
   "version": "0.2.0",
