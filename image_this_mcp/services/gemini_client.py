@@ -1,6 +1,6 @@
 import base64
 import logging
-from typing import Any
+from typing import Any, Optional, Union, Dict, List
 
 from google import genai
 from google.genai import types as gx
@@ -22,7 +22,7 @@ class GeminiClient:
     def __init__(
         self,
         config: ServerConfig,
-        gemini_config: GeminiConfig | BaseModelConfig | FlashImageConfig | ProImageConfig
+        gemini_config: Union[GeminiConfig, BaseModelConfig, FlashImageConfig, ProImageConfig]
     ):
         self.config = config
         self.gemini_config = gemini_config
@@ -73,7 +73,7 @@ class GeminiClient:
             self.logger.error(f"Authentication validation failed: {e}")
             return False
 
-    def create_image_parts(self, images_b64: list[str], mime_types: list[str]) -> list[gx.Part]:
+    def create_image_parts(self, images_b64: List[str], mime_types: List[str]) -> List[gx.Part]:
         """Convert base64 images to Gemini Part objects."""
         if not images_b64 or not mime_types:
             return []
@@ -103,8 +103,8 @@ class GeminiClient:
     def generate_content(
         self,
         contents: list,
-        config: dict[str, Any] | None = None,
-        aspect_ratio: str | None = None,
+        config: Optional[Dict[str, Any]] = None,
+        aspect_ratio: Optional[str] = None,
         **kwargs
     ) -> any:
         """
@@ -170,7 +170,7 @@ class GeminiClient:
             self.logger.error(f"Gemini API error: {e}")
             raise
 
-    def _filter_parameters(self, config: dict[str, Any]) -> dict[str, Any]:
+    def _filter_parameters(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Filter configuration parameters based on model capabilities.
 
@@ -224,7 +224,7 @@ class GeminiClient:
 
         return filtered
 
-    def extract_images(self, response) -> list[bytes]:
+    def extract_images(self, response) -> List[bytes]:
         """Extract image bytes from Gemini response."""
         images = []
         candidates = getattr(response, "candidates", None)
@@ -243,7 +243,7 @@ class GeminiClient:
 
         return images
 
-    def upload_file(self, file_path: str, _display_name: str | None = None):
+    def upload_file(self, file_path: str, _display_name: Optional[str] = None):
         """Upload file to Gemini Files API.
 
         Note: display_name is kept for API compatibility but ignored as the

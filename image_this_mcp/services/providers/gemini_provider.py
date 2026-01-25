@@ -8,7 +8,7 @@ providing compatibility with the multi-provider architecture.
 import base64
 import logging
 import mimetypes
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, Union
 
 from fastmcp.utilities.types import Image as MCPImage
 
@@ -40,7 +40,7 @@ class GeminiProvider(BaseImageProvider):
     def __init__(
         self,
         client: GeminiClient,
-        config: GeminiConfig | BaseModelConfig,
+        config: Union[GeminiConfig, BaseModelConfig],
         storage_service: Optional[ImageStorageService] = None,
     ):
         """

@@ -2,7 +2,7 @@ import base64
 import logging
 import mimetypes
 import os
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Optional
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -40,26 +40,26 @@ def register_generate_image_tool(server: FastMCP):
             int, Field(description="Requested image count (model may return fewer).", ge=1, le=4)
         ] = 1,
         negative_prompt: Annotated[
-            str | None,
+            Optional[str],
             Field(description="Things to avoid (style, objects, text).", max_length=1024),
         ] = None,
         system_instruction: Annotated[
-            str | None, Field(description="Optional system tone/style guidance.", max_length=512)
+            Optional[str], Field(description="Optional system tone/style guidance.", max_length=512)
         ] = None,
         input_image_path_1: Annotated[
-            str | None,
+            Optional[str],
             Field(description="Path to first input image for composition/conditioning"),
         ] = None,
         input_image_path_2: Annotated[
-            str | None,
+            Optional[str],
             Field(description="Path to second input image for composition/conditioning"),
         ] = None,
         input_image_path_3: Annotated[
-            str | None,
+            Optional[str],
             Field(description="Path to third input image for composition/conditioning"),
         ] = None,
         file_id: Annotated[
-            str | None,
+            Optional[str],
             Field(
                 description="Files API file ID to use as input/edit source (e.g., 'files/abc123'). "
                 "If provided, this takes precedence over input_image_path_* parameters for the primary input."
@@ -73,21 +73,21 @@ def register_generate_image_tool(server: FastMCP):
             ),
         ] = "auto",
         model_tier: Annotated[
-            str | None,
+            Optional[str],
             Field(
                 description="Model tier: 'flash' (speed, 1024px), 'pro' (quality, up to 4K), or 'auto' (smart selection). "
                 "Default: 'auto' - automatically selects based on prompt quality/speed indicators."
             ),
         ] = "auto",
         resolution: Annotated[
-            str | None,
+            Optional[str],
             Field(
                 description="Output resolution: 'high', '4k', '2k', '1k'. "
                 "4K and 2K only available with 'pro' model. Default: 'high'."
             ),
         ] = "high",
         thinking_level: Annotated[
-            str | None,
+            Optional[str],
             Field(
                 description="Reasoning depth for Pro model: 'low' (faster), 'high' (better quality). "
                 "Only applies to Pro model. Default: 'high'."

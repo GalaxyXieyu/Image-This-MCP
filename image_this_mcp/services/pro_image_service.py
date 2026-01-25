@@ -2,7 +2,7 @@
 
 import base64
 import logging
-from typing import Any
+from typing import Any, Optional, List, Tuple, Dict
 
 from fastmcp.utilities.types import Image as MCPImage
 
@@ -20,7 +20,7 @@ class ProImageService:
         self,
         gemini_client: GeminiClient,
         config: ProImageConfig,
-        storage_service: ImageStorageService | None = None,
+        storage_service: Optional[ImageStorageService] = None,
     ):
         self.gemini_client = gemini_client
         self.config = config
@@ -32,14 +32,14 @@ class ProImageService:
         prompt: str,
         n: int = 1,
         resolution: str = "high",
-        thinking_level: ThinkingLevel | None = None,
-        enable_grounding: bool | None = None,
-        media_resolution: MediaResolution | None = None,
-        negative_prompt: str | None = None,
-        system_instruction: str | None = None,
-        input_images: list[tuple[str, str]] | None = None,
+        thinking_level: Optional[ThinkingLevel] = None,
+        enable_grounding: Optional[bool] = None,
+        media_resolution: Optional[MediaResolution] = None,
+        negative_prompt: Optional[str] = None,
+        system_instruction: Optional[str] = None,
+        input_images: Optional[List[Tuple[str, str]]] = None,
         use_storage: bool = True,
-    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
+    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Generate high-quality images using Gemini 3 Pro Image.
 
@@ -232,10 +232,10 @@ class ProImageService:
         instruction: str,
         base_image_b64: str,
         mime_type: str = "image/png",
-        thinking_level: ThinkingLevel | None = None,
-        media_resolution: MediaResolution | None = None,
+        thinking_level: Optional[ThinkingLevel] = None,
+        media_resolution: Optional[MediaResolution] = None,
         use_storage: bool = True,
-    ) -> tuple[list[MCPImage], int]:
+    ) -> Tuple[List[MCPImage], int]:
         """
         Edit images with Pro model's enhanced understanding.
 
@@ -365,7 +365,7 @@ class ProImageService:
         self,
         prompt: str,
         resolution: str,
-        negative_prompt: str | None
+        negative_prompt: Optional[str]
     ) -> str:
         """
         Enhance prompt to leverage Pro model capabilities.

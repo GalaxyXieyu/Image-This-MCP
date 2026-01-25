@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import os
 from pathlib import Path
+from typing import Optional, List
 
 from dotenv import load_dotenv
 
@@ -40,7 +41,7 @@ class MediaResolution(str, Enum):
 class ServerConfig:
     """Server configuration settings."""
 
-    gemini_api_key: str | None = None
+    gemini_api_key: Optional[str] = None
     server_name: str = "image-this-mcp"
     transport: str = "stdio"  # stdio or http
     host: str = "127.0.0.1"
@@ -49,9 +50,9 @@ class ServerConfig:
     max_concurrent_requests: int = 10
     image_output_dir: str = ""
     auth_method: AuthMethod = AuthMethod.AUTO
-    gcp_project_id: str | None = None
+    gcp_project_id: Optional[str] = None
     gcp_region: str = "us-central1"
-    api_base_url: str | None = None  # Custom API base URL for third-party Banana API
+    api_base_url: Optional[str] = None  # Custom API base URL for third-party Banana API
     default_provider: str = "gemini"  # Default image provider: 'gemini' or 'jimeng'
 
     @classmethod
@@ -151,12 +152,12 @@ class ProImageConfig(BaseModelConfig):
 class ModelSelectionConfig:
     """Configuration for intelligent model selection."""
     default_tier: ModelTier = ModelTier.AUTO
-    auto_quality_keywords: list[str] = field(default_factory=lambda: [
+    auto_quality_keywords: List[str] = field(default_factory=lambda: [
         "4k", "high quality", "professional", "production",
         "high-res", "high resolution", "detailed", "sharp", "crisp",
         "hd", "ultra", "premium", "magazine", "print"
     ])
-    auto_speed_keywords: list[str] = field(default_factory=lambda: [
+    auto_speed_keywords: List[str] = field(default_factory=lambda: [
         "quick", "fast", "draft", "prototype", "sketch",
         "rapid", "rough", "temporary", "test"
     ])
@@ -189,8 +190,8 @@ class GeminiConfig:
 class JimengConfig:
     """Jimeng AI (Volcengine) configuration."""
 
-    access_key: str | None = None
-    secret_key: str | None = None
+    access_key: Optional[str] = None
+    secret_key: Optional[str] = None
     api_endpoint: str = "visual.volcengineapi.com"
     region: str = "cn-north-1"
     service: str = "cv"

@@ -1,7 +1,7 @@
 """Service registry for dependency injection."""
 
 import os
-from typing import Optional
+from typing import Optional, List
 
 from ..config.settings import (
     FlashImageConfig,
@@ -24,20 +24,20 @@ from .pro_image_service import ProImageService
 from .providers import ProviderFactory
 
 # Global service instances (initialized by the server)
-_gemini_client: GeminiClient | None = None
-_file_image_service: FileImageService | None = None
-_file_service: FileService | None = None
-_enhanced_image_service: EnhancedImageService | None = None
-_files_api_service: FilesAPIService | None = None
-_image_database_service: ImageDatabaseService | None = None
-_image_storage_service: ImageStorageService | None = None
-_maintenance_service: MaintenanceService | None = None
+_gemini_client: Optional[GeminiClient] = None
+_file_image_service: Optional[FileImageService] = None
+_file_service: Optional[FileService] = None
+_enhanced_image_service: Optional[EnhancedImageService] = None
+_files_api_service: Optional[FilesAPIService] = None
+_image_database_service: Optional[ImageDatabaseService] = None
+_image_storage_service: Optional[ImageStorageService] = None
+_maintenance_service: Optional[MaintenanceService] = None
 
 # Multi-model support services
-_flash_gemini_client: GeminiClient | None = None
-_pro_gemini_client: GeminiClient | None = None
-_pro_image_service: ProImageService | None = None
-_model_selector: ModelSelector | None = None
+_flash_gemini_client: Optional[GeminiClient] = None
+_pro_gemini_client: Optional[GeminiClient] = None
+_pro_image_service: Optional[ProImageService] = None
+_model_selector: Optional[ModelSelector] = None
 
 
 def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig):
@@ -204,11 +204,11 @@ def get_default_provider():
     return ProviderFactory.get_default_provider()
 
 
-def list_providers() -> list[str]:
+def list_providers() -> List[str]:
     """List all available provider names."""
     return ProviderFactory.list_providers()
 
 
-def list_initialized_providers() -> list[str]:
+def list_initialized_providers() -> List[str]:
     """List all initialized provider names."""
     return ProviderFactory.list_initialized_providers()

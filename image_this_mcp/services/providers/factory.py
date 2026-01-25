@@ -6,7 +6,7 @@ image generation provider instances.
 """
 
 import logging
-from typing import Dict, Type, Optional
+from typing import Dict, Type, Optional, List
 
 from .base import BaseImageProvider
 from .gemini_provider import GeminiProvider
@@ -112,7 +112,7 @@ class ProviderFactory:
         return cls._providers.get(name)
 
     @classmethod
-    def list_providers(cls) -> list[str]:
+    def list_providers(cls) -> List[str]:
         """
         List all registered provider names.
 
@@ -122,7 +122,7 @@ class ProviderFactory:
         return list(cls._provider_classes.keys())
 
     @classmethod
-    def list_initialized_providers(cls) -> list[str]:
+    def list_initialized_providers(cls) -> List[str]:
         """
         List all initialized provider names.
 

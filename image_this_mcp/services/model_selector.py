@@ -1,6 +1,7 @@
 """Intelligent model selection service for routing requests to optimal models."""
 
 import logging
+from typing import Optional, Union, Tuple
 
 from ..config.settings import ModelSelectionConfig, ModelTier
 from .image_service import ImageService
@@ -38,9 +39,9 @@ class ModelSelector:
     def select_model(
         self,
         prompt: str,
-        requested_tier: ModelTier | None = None,
+        requested_tier: Optional[ModelTier] = None,
         **kwargs
-    ) -> tuple[ImageService | ProImageService, ModelTier]:
+    ) -> Tuple[Union[ImageService, ProImageService], ModelTier]:
         """
         Select appropriate model based on requirements.
 
