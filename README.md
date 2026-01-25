@@ -1,28 +1,31 @@
-# Nano Banana MCP Server 🍌
+# Image This MCP 🎨
 
-A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini** models with intelligent model selection.
+A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through **multiple providers** including Google's **Gemini** models and Volcengine's **Jimeng AI** with intelligent provider selection.
 
-## ⭐ NEW: Gemini 3 Pro Image Support! 🚀
+## ⭐ NEW: Multi-Provider Support! 🚀
 
-Now featuring **Nano Banana Pro** - Google's latest and most powerful image generation model:
+Now supporting multiple image generation providers:
 
-- 🏆 **Professional 4K Quality**: Generate stunning images up to 3840px resolution
-- 🌐 **Google Search Grounding**: Access real-world knowledge for factually accurate images
-- 🧠 **Advanced Reasoning**: Configurable thinking levels for complex compositions
-- 🎯 **Superior Text Rendering**: Crystal-clear text in images at high resolution
-- 🎨 **Enhanced Understanding**: Better context comprehension for complex prompts
+### 🏆 **Gemini (Nano Banana)**
+- **Flash Model**: Fast generation (1024px) for rapid prototyping
+- **Pro Model**: 4K quality up to 3840px with Google Search grounding
+- **Smart Selection**: Automatically chooses optimal model based on prompt
+- **Advanced Features**: Text rendering, reference images, aspect ratio control
 
-<a href="https://glama.ai/mcp/servers/@zhongweili/nanobanana-mcp-server">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@zhongweili/nanobanana-mcp-server/badge" alt="nanobanana-mcp-server MCP server" />
-</a>
+### 🎨 **Jimeng AI (Volcengine)**
+- **Chinese-Optimized**: Tailored for Chinese language and cultural contexts
+- **High Quality**: Default 3:4 portrait ratio (1536x2048)
+- **Reference Images**: Support for image-based generation
+- **Serial Queue**: Automatic rate limiting protection
 
 ## ✨ Features
 
-- 🎨 **Multi-Model AI Image Generation**: Intelligent selection between Flash (speed) and Pro (quality) models
+- 🎨 **Multi-Provider Support**: Choose between Gemini and Jimeng AI, or auto-select
 - ⚡ **Gemini 2.5 Flash Image**: Fast generation (1024px) for rapid prototyping
 - 🏆 **Gemini 3 Pro Image**: High-quality up to 4K with Google Search grounding
 - 🤖 **Smart Model Selection**: Automatically chooses optimal model based on your prompt
-- 📐 **Aspect Ratio Control** ⭐ NEW: Specify output dimensions (1:1, 16:9, 9:16, 21:9, and more)
+- 🌏 **Jimeng AI Integration**: Chinese-optimized image generation with Volcengine
+- 📐 **Aspect Ratio Control**: Specify output dimensions (1:1, 16:9, 9:16, 21:9, and more)
 - 📋 **Smart Templates**: Pre-built prompt templates for photography, design, and editing
 - 📁 **File Management**: Upload and manage files via Gemini Files API
 - 🔍 **Resource Discovery**: Browse templates and file metadata through MCP resources
@@ -38,18 +41,43 @@ Now featuring **Nano Banana Pro** - Google's latest and most powerful image gene
 
 ### Installation
 
-Option 1: From MCP Registry (Recommended)
+**Option 1: From MCP Registry (Recommended)**
 This server is available in the [Model Context Protocol Registry](https://registry.modelcontextprotocol.io/?q=nanobanana). Search for "nanobanana" or use the MCP name below with your MCP client.
 
-mcp-name: io.github.zhongweili/nanobanana-mcp-server
+mcp-name: `io.github.zhongweili/nanobanana-mcp-server`
 
-Option 2: Using `uvx`
+**Option 2: From GitHub (Latest Development Version)**
+
+Install directly from GitHub using `uv` (recommended):
+
+```bash
+# Install uv (if not installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install MCP server from GitHub
+uv tool install git+https://github.com/GalaxyXieyu/Image-This-MCP.git
+
+# Verify installation
+nanobanana-mcp-server --help
+
+# Manage tools
+uv tool list
+uv tool uninstall nanobanana-mcp-server
+```
+
+Run without installing (uvx):
+
+```bash
+uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git nanobanana-mcp-server --help
+```
+
+**Option 3: Using Published Package (uvx)**
 
 ```bash
 uvx nanobanana-mcp-server@latest
 ```
 
-Option 3: Using `pip`
+**Option 4: Using pip**
 
 ```bash
 pip install nanobanana-mcp-server
@@ -107,6 +135,57 @@ Required environment variables:
 - Enable Vertex AI API: `gcloud services enable aiplatform.googleapis.com`
 - Grant IAM Role: `roles/aiplatform.user` to the service account.
 
+### Provider Selection
+
+Choose your default image generation provider via `IMAGE_PROVIDER` environment variable:
+
+```bash
+# Use Gemini (default)
+export IMAGE_PROVIDER=gemini
+
+# Use Jimeng AI
+export IMAGE_PROVIDER=jimeng
+```
+
+You can also specify the provider per-request using the `provider` parameter in the `generate_image` tool:
+- `"gemini"` - Use Gemini (Nano Banana)
+- `"jimeng"` - Use Jimeng AI (Volcengine)
+- `"auto"` - Use default provider from environment
+
+### Jimeng AI Configuration
+
+To use Jimeng AI provider, you need Volcengine credentials:
+
+1. Get your credentials at [Volcengine Console](https://console.volcengine.com/)
+2. Set the following environment variables:
+
+```bash
+export JIMENG_ACCESS_KEY=your_access_key_here
+export JIMENG_SECRET_KEY=your_secret_key_here
+```
+
+**Example Configuration** (Claude Desktop with Jimeng):
+```json
+{
+  "mcpServers": {
+    "nanobanana": {
+      "command": "uvx",
+      "args": ["nanobanana-mcp-server@latest"],
+      "env": {
+        "IMAGE_PROVIDER": "jimeng",
+        "JIMENG_ACCESS_KEY": "your-access-key",
+        "JIMENG_SECRET_KEY": "your-secret-key"
+      }
+    }
+  }
+}
+```
+
+**Jimeng AI Features**:
+- Default resolution: 1536x2048 (3:4 portrait)
+- Supports reference images for image-to-image generation
+- Serial request queue to avoid rate limiting
+- Automatic retry with exponential backoff
 
 ### Claude Desktop
 
@@ -128,7 +207,24 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-#### Option 2: Using Local Source (Development)
+#### Option 2: Using GitHub Installation
+
+If you installed from GitHub using `uv tool install`, use the installed command directly:
+
+```json
+{
+  "mcpServers": {
+    "nanobanana": {
+      "command": "nanobanana-mcp-server",
+      "env": {
+        "GEMINI_API_KEY": "your-gemini-api-key-here"
+      }
+    }
+  }
+}
+```
+
+#### Option 3: Using Local Source (Development)
 
 If you are running from source code, point to your local installation:
 

@@ -12,8 +12,8 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from google.genai import types as gx
 
-from nanobanana_mcp_server.services.gemini_client import GeminiClient
-from nanobanana_mcp_server.config.settings import ServerConfig, GeminiConfig
+from image_this_mcp.services.gemini_client import GeminiClient
+from image_this_mcp.config.settings import ServerConfig, GeminiConfig
 
 
 # Supported aspect ratios according to Gemini API docs
@@ -35,7 +35,7 @@ class TestAspectRatioValidation:
 
     def test_aspect_ratio_literal_type_constraint(self):
         """Verify the tool parameter uses Literal type for type safety."""
-        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
+        from image_this_mcp.tools.generate_image import register_generate_image_tool
         from fastmcp import FastMCP
 
         # This test ensures the Literal constraint is in place
@@ -77,7 +77,7 @@ class TestGeminiClientAspectRatio:
 
     def test_aspect_ratio_creates_image_config(self, gemini_client):
         """Test that aspect_ratio parameter creates ImageConfig."""
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch('image_this_mcp.services.gemini_client.gx') as mock_gx:
             # Setup mocks
             mock_image_config = Mock()
             mock_gx.ImageConfig.return_value = mock_image_config
@@ -94,7 +94,7 @@ class TestGeminiClientAspectRatio:
 
     def test_aspect_ratio_none_skips_image_config(self, gemini_client):
         """Test that aspect_ratio=None doesn't create ImageConfig."""
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch('image_this_mcp.services.gemini_client.gx') as mock_gx:
             mock_gx.GenerateContentConfig = Mock()
 
             # Call without aspect_ratio
@@ -122,7 +122,7 @@ class TestGeminiClientAspectRatio:
 
     def test_response_modalities_forced_to_image(self, gemini_client):
         """Test that response_modalities is always set to ['Image']."""
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch('image_this_mcp.services.gemini_client.gx') as mock_gx:
             mock_gx.ImageConfig = Mock()
             mock_gx.GenerateContentConfig = Mock()
 

@@ -1,4 +1,4 @@
-from nanobanana_mcp_server.server import create_app
+from image_this_mcp.server import create_app
 
 app = create_app()
 

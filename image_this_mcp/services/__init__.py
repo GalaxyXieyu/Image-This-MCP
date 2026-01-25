@@ -6,6 +6,7 @@ from typing import Optional
 from ..config.settings import (
     FlashImageConfig,
     GeminiConfig,
+    JimengConfig,
     ModelSelectionConfig,
     ProImageConfig,
     ServerConfig,
@@ -20,6 +21,7 @@ from .image_storage_service import ImageStorageService
 from .maintenance_service import MaintenanceService
 from .model_selector import ModelSelector
 from .pro_image_service import ProImageService
+from .providers import ProviderFactory
 
 # Global service instances (initialized by the server)
 _gemini_client: GeminiClient | None = None
@@ -92,6 +94,19 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _file_image_service,  # Flash service
         _pro_image_service,   # Pro service
         selection_config
+    )
+
+    # Initialize multi-provider support
+    jimeng_config = JimengConfig.from_env()
+
+    # Register storage service with factory
+    ProviderFactory.set_storage_service(_image_storage_service)
+
+    # Initialize all providers (Gemini and Jimeng)
+    ProviderFactory.initialize_all_providers(
+        server_config=server_config,
+        gemini_config=flash_config,  # Use Flash config as default
+        jimeng_config=jimeng_config
     )
 
 
@@ -170,3 +185,30 @@ def get_model_selector() -> ModelSelector:
     if _model_selector is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _model_selector
+
+
+# Multi-provider support functions
+
+def get_provider_factory() -> type[ProviderFactory]:
+    """Get the provider factory class."""
+    return ProviderFactory
+
+
+def get_provider(name: str):
+    """Get a specific provider instance."""
+    return ProviderFactory.get_provider(name)
+
+
+def get_default_provider():
+    """Get the default provider (Gemini)."""
+    return ProviderFactory.get_default_provider()
+
+
+def list_providers() -> list[str]:
+    """List all available provider names."""
+    return ProviderFactory.list_providers()
+
+
+def list_initialized_providers() -> list[str]:
+    """List all initialized provider names."""
+    return ProviderFactory.list_initialized_providers()

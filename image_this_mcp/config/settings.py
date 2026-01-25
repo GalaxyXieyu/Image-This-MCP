@@ -41,7 +41,7 @@ class ServerConfig:
     """Server configuration settings."""
 
     gemini_api_key: str | None = None
-    server_name: str = "nanobanana-mcp-server"
+    server_name: str = "image-this-mcp"
     transport: str = "stdio"  # stdio or http
     host: str = "127.0.0.1"
     port: int = 9000
@@ -52,6 +52,7 @@ class ServerConfig:
     gcp_project_id: str | None = None
     gcp_region: str = "us-central1"
     api_base_url: str | None = None  # Custom API base URL for third-party Banana API
+    default_provider: str = "gemini"  # Default image provider: 'gemini' or 'jimeng'
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -108,6 +109,7 @@ class ServerConfig:
             mask_error_details=os.getenv("FASTMCP_MASK_ERRORS", "false").lower() == "true",
             image_output_dir=str(output_path),
             api_base_url=api_base_url,
+            default_provider=os.getenv("IMAGE_PROVIDER", "gemini"),
         )
 
 
@@ -181,3 +183,36 @@ class GeminiConfig:
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB
     default_image_format: str = "png"
     request_timeout: int = 60  # seconds - increased for image generation
+
+
+@dataclass
+class JimengConfig:
+    """Jimeng AI (Volcengine) configuration."""
+
+    access_key: str | None = None
+    secret_key: str | None = None
+    api_endpoint: str = "visual.volcengineapi.com"
+    region: str = "cn-north-1"
+    service: str = "cv"
+    version: str = "2022-08-31"
+    default_width: int = 1536  # 3:4 portrait ratio
+    default_height: int = 2048
+    request_timeout: int = 120  # seconds - Jimeng may be slower
+    max_retries: int = 3  # Number of retries for failed requests
+    retry_delay: int = 5  # Initial retry delay in seconds
+
+    @classmethod
+    def from_env(cls) -> "JimengConfig":
+        """Load configuration from environment variables."""
+        load_dotenv()
+
+        return cls(
+            access_key=os.getenv("JIMENG_ACCESS_KEY"),
+            secret_key=os.getenv("JIMENG_SECRET_KEY"),
+            request_timeout=int(os.getenv("JIMENG_TIMEOUT", "120")),
+        )
+
+    def validate_credentials(self) -> bool:
+        """Validate that required credentials are present."""
+        return bool(self.access_key and self.secret_key)
+

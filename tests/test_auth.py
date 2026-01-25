@@ -2,9 +2,9 @@ import os
 import pytest
 from unittest.mock import MagicMock, patch
 
-from nanobanana_mcp_server.config.settings import ServerConfig, AuthMethod, GeminiConfig
-from nanobanana_mcp_server.services.gemini_client import GeminiClient
-from nanobanana_mcp_server.core.exceptions import ADCConfigurationError
+from image_this_mcp.config.settings import ServerConfig, AuthMethod, GeminiConfig
+from image_this_mcp.services.gemini_client import GeminiClient
+from image_this_mcp.core.exceptions import ADCConfigurationError
 
 class TestAuthConfiguration:
     def test_api_key_auth_requires_api_key(self):

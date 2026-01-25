@@ -12,6 +12,7 @@ from pydantic import Field
 from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
+from .. import services
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -19,7 +20,7 @@ def register_generate_image_tool(server: FastMCP):
 
     @server.tool(
         annotations={
-            "title": "Generate or edit images (Multi-Model: Flash & Pro)",
+            "title": "Generate or edit images (Multi-Provider: Gemini, Jimeng)",
             "readOnlyHint": True,
             "openWorldHint": True,
         }
@@ -106,10 +107,23 @@ def register_generate_image_tool(server: FastMCP):
                 "See docs for supported values: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9."
             ),
         ] = None,
+        provider: Annotated[
+            Literal["gemini", "jimeng", "auto"] | None,
+            Field(
+                description="Image generation provider: 'gemini' (Nano Banana - Flash/Pro models), "
+                "'jimeng' (Volcengine Jimeng - Chinese-optimized), or 'auto' (use default from config). "
+                "Default: 'auto' - uses IMAGE_PROVIDER environment variable or defaults to 'gemini'."
+            ),
+        ] = "auto",
         _ctx: Context = None,
     ) -> ToolResult:
         """
         Generate new images or edit existing images using natural language instructions.
+
+        **Multi-Provider Support**:
+        - **gemini**: Nano Banana (Flash & Pro models, 4K support, Google Search grounding)
+        - **jimeng**: Volcengine Jimeng (Chinese-optimized, 3:4 portrait default, serial queue)
+        - **auto**: Automatically selects based on IMAGE_PROVIDER environment variable (default: gemini)
 
         Supports multiple input modes:
         1. Pure generation: Just provide a prompt to create new images
@@ -124,6 +138,27 @@ def register_generate_image_tool(server: FastMCP):
         logger = logging.getLogger(__name__)
 
         try:
+            # Resolve provider
+            if provider == "auto":
+                # Use default provider from server config or environment
+                provider = services.get_provider_factory().list_initialized_providers()[0] if services.list_initialized_providers() else "gemini"
+                logger.info(f"Auto-selected provider: {provider}")
+            else:
+                logger.info(f"Using specified provider: {provider}")
+
+            # Validate provider is available
+            if provider not in services.list_initialized_providers():
+                available = services.list_initialized_providers()
+                if available:
+                    raise ValidationError(
+                        f"Provider '{provider}' not available. "
+                        f"Initialized providers: {', '.join(available)}"
+                    )
+                else:
+                    raise ValidationError(
+                        f"No providers initialized. Please check your configuration."
+                    )
+
             # Construct input_image_paths list from individual parameters
             input_image_paths = []
             for path in [input_image_path_1, input_image_path_2, input_image_path_3]:
@@ -136,7 +171,7 @@ def register_generate_image_tool(server: FastMCP):
 
             logger.info(
                 f"Generate image request: prompt='{prompt[:50]}...', n={n}, "
-                f"paths={input_image_paths}, model_tier={model_tier}, aspect_ratio={aspect_ratio}"
+                f"paths={input_image_paths}, provider={provider}, model_tier={model_tier}, aspect_ratio={aspect_ratio}"
             )
 
             # Auto-detect mode based on inputs
