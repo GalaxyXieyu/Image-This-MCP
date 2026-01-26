@@ -139,16 +139,22 @@ def register_generate_image_tool(server: FastMCP):
 
         try:
             # Resolve provider
-            if provider == "auto":
-                # Use default provider from server config or environment
-                provider = services.get_provider_factory().list_initialized_providers()[0] if services.list_initialized_providers() else "gemini"
-                logger.info(f"Auto-selected provider: {provider}")
+            resolved_provider = provider or "auto"
+            if resolved_provider == "auto":
+                env_provider = os.getenv("IMAGE_PROVIDER")
+                if env_provider:
+                    resolved_provider = env_provider.lower()
+                else:
+                    available_providers = services.list_initialized_providers()
+                    resolved_provider = available_providers[0] if available_providers else "gemini"
+                logger.info(f"Auto-selected provider: {resolved_provider}")
             else:
-                logger.info(f"Using specified provider: {provider}")
+                logger.info(f"Using specified provider: {resolved_provider}")
+            provider = resolved_provider
 
             # Validate provider is available
-            if provider not in services.list_initialized_providers():
-                available = services.list_initialized_providers()
+            available = services.list_initialized_providers()
+            if provider not in available:
                 if available:
                     raise ValidationError(
                         f"Provider '{provider}' not available. "
@@ -182,41 +188,8 @@ def register_generate_image_tool(server: FastMCP):
                 else:
                     detected_mode = "generate"
 
-            # Parse model tier
-            try:
-                tier = ModelTier(model_tier) if model_tier else ModelTier.AUTO
-            except ValueError:
-                logger.warning(f"Invalid model_tier '{model_tier}', defaulting to AUTO")
-                tier = ModelTier.AUTO
-
-            # Validate thinking level for Pro model
-            try:
-                if thinking_level:
-                    _ = ThinkingLevel(thinking_level)  # Just validate
-            except ValueError:
-                logger.warning(f"Invalid thinking_level '{thinking_level}', defaulting to HIGH")
-                thinking_level = "high"
-
-            # Get model selector to determine which model to use
-            from ..services import get_model_selector
-            model_selector = get_model_selector()
-
-            # Select model based on prompt and parameters
-            selected_service, selected_tier = model_selector.select_model(
-                prompt=prompt,
-                requested_tier=tier,
-                n=n,
-                resolution=resolution,
-                input_images=input_image_paths,
-                thinking_level=thinking_level,
-                enable_grounding=enable_grounding
-            )
-
-            model_info = model_selector.get_model_info(selected_tier)
-            logger.info(
-                f"Selected {model_info['emoji']} {model_info['name']} "
-                f"({selected_tier.value}) for this request"
-            )
+            selected_tier = None
+            model_info = None
 
             # Validation
             if mode not in ["auto", "generate", "edit"]:
@@ -242,67 +215,175 @@ def register_generate_image_tool(server: FastMCP):
                         "Edit mode with file_id supports only additional input images, not multiple primary inputs"
                     )
 
-            # Get enhanced image service (would be injected in real implementation)
-            enhanced_image_service = _get_enhanced_image_service()
+            thumbnail_images = []
+            metadata = []
+            tier = None
 
-            # Execute based on detected mode
-            if detected_mode == "edit" and file_id:
-                # Edit by file_id following workflows.md sequence
-                logger.info(f"Edit mode: using file_id {file_id}")
-                thumbnail_images, metadata = enhanced_image_service.edit_image_by_file_id(
-                    file_id=file_id, edit_prompt=prompt
-                )
+            if provider == "gemini":
+                # Parse model tier
+                try:
+                    tier = ModelTier(model_tier) if model_tier else ModelTier.AUTO
+                except ValueError:
+                    logger.warning(f"Invalid model_tier '{model_tier}', defaulting to AUTO")
+                    tier = ModelTier.AUTO
 
-            elif detected_mode == "edit" and input_image_paths and len(input_image_paths) == 1:
-                # Edit by file path
-                logger.info(f"Edit mode: using file path {input_image_paths[0]}")
-                thumbnail_images, metadata = enhanced_image_service.edit_image_by_path(
-                    instruction=prompt, file_path=input_image_paths[0]
-                )
+                # Validate thinking level for Pro model
+                try:
+                    if thinking_level:
+                        _ = ThinkingLevel(thinking_level)  # Just validate
+                except ValueError:
+                    logger.warning(f"Invalid thinking_level '{thinking_level}', defaulting to HIGH")
+                    thinking_level = "high"
 
-            else:
-                # Generation mode (with optional input images for conditioning)
-                logger.info("Generate mode: creating new images")
-                if aspect_ratio:
-                    logger.info(f"Using aspect ratio override: {aspect_ratio}")
+                # Get model selector to determine which model to use
+                from ..services import get_model_selector
+                model_selector = get_model_selector()
 
-                # Prepare input images by reading from file paths
-                input_images = None
-                if input_image_paths:
-                    input_images = []
-
-                    for path in input_image_paths:
-                        try:
-                            # Read image file
-                            with open(path, "rb") as f:
-                                image_bytes = f.read()
-
-                            # Detect MIME type
-                            mime_type, _ = mimetypes.guess_type(path)
-                            if not mime_type or not mime_type.startswith("image/"):
-                                mime_type = "image/png"  # Fallback
-
-                            # Convert to base64 for internal API use
-                            base64_data = base64.b64encode(image_bytes).decode("utf-8")
-                            input_images.append((base64_data, mime_type))
-
-                            logger.debug(f"Loaded input image: {path} ({mime_type})")
-
-                        except Exception as e:
-                            raise ValidationError(f"Failed to load input image {path}: {e}") from e
-
-                    logger.info(f"Loaded {len(input_images)} input images from file paths")
-
-                # Generate images following workflows.md pattern:
-                # M->G->FS->F->D (save full-res, create thumbnail, upload to Files API, track in DB)
-                thumbnail_images, metadata = enhanced_image_service.generate_images(
+                # Select model based on prompt and parameters
+                _, selected_tier = model_selector.select_model(
                     prompt=prompt,
+                    requested_tier=tier,
                     n=n,
-                    negative_prompt=negative_prompt,
-                    system_instruction=system_instruction,
-                    input_images=input_images,
-                    aspect_ratio=aspect_ratio,
+                    resolution=resolution,
+                    input_images=input_image_paths,
+                    thinking_level=thinking_level,
+                    enable_grounding=enable_grounding
                 )
+
+                model_info = model_selector.get_model_info(selected_tier)
+                logger.info(
+                    f"Selected {model_info['emoji']} {model_info['name']} "
+                    f"({selected_tier.value}) for this request"
+                )
+
+                # Get enhanced image service (would be injected in real implementation)
+                enhanced_image_service = _get_enhanced_image_service()
+
+                # Execute based on detected mode
+                if detected_mode == "edit" and file_id:
+                    # Edit by file_id following workflows.md sequence
+                    logger.info(f"Edit mode: using file_id {file_id}")
+                    thumbnail_images, metadata = enhanced_image_service.edit_image_by_file_id(
+                        file_id=file_id, edit_prompt=prompt
+                    )
+
+                elif detected_mode == "edit" and input_image_paths and len(input_image_paths) == 1:
+                    # Edit by file path
+                    logger.info(f"Edit mode: using file path {input_image_paths[0]}")
+                    thumbnail_images, metadata = enhanced_image_service.edit_image_by_path(
+                        instruction=prompt, file_path=input_image_paths[0]
+                    )
+
+                else:
+                    # Generation mode (with optional input images for conditioning)
+                    logger.info("Generate mode: creating new images")
+                    if aspect_ratio:
+                        logger.info(f"Using aspect ratio override: {aspect_ratio}")
+
+                    # Prepare input images by reading from file paths
+                    input_images = None
+                    if input_image_paths:
+                        input_images = []
+
+                        for path in input_image_paths:
+                            try:
+                                # Read image file
+                                with open(path, "rb") as f:
+                                    image_bytes = f.read()
+
+                                # Detect MIME type
+                                mime_type, _ = mimetypes.guess_type(path)
+                                if not mime_type or not mime_type.startswith("image/"):
+                                    mime_type = "image/png"  # Fallback
+
+                                # Convert to base64 for internal API use
+                                base64_data = base64.b64encode(image_bytes).decode("utf-8")
+                                input_images.append((base64_data, mime_type))
+
+                                logger.debug(f"Loaded input image: {path} ({mime_type})")
+
+                            except Exception as e:
+                                raise ValidationError(f"Failed to load input image {path}: {e}") from e
+
+                        logger.info(f"Loaded {len(input_images)} input images from file paths")
+
+                    # Generate images following workflows.md pattern:
+                    # M->G->FS->F->D (save full-res, create thumbnail, upload to Files API, track in DB)
+                    thumbnail_images, metadata = enhanced_image_service.generate_images(
+                        prompt=prompt,
+                        n=n,
+                        negative_prompt=negative_prompt,
+                        system_instruction=system_instruction,
+                        input_images=input_images,
+                        aspect_ratio=aspect_ratio,
+                    )
+            else:
+                if file_id:
+                    raise ValidationError(
+                        "Jimeng provider does not support Files API file_id inputs"
+                    )
+
+                provider_instance = services.get_provider(provider)
+                if not provider_instance:
+                    raise ValidationError(f"Provider '{provider}' not initialized")
+
+                if detected_mode == "edit":
+                    if not input_image_paths:
+                        raise ValidationError("Jimeng edit mode requires input_image_paths")
+                    if len(input_image_paths) != 1:
+                        raise ValidationError("Jimeng edit mode supports exactly one input image")
+
+                    edit_path = input_image_paths[0]
+                    logger.info(f"Edit mode (Jimeng): using file path {edit_path}")
+
+                    try:
+                        with open(edit_path, "rb") as f:
+                            image_bytes = f.read()
+                    except Exception as e:
+                        raise ValidationError(f"Failed to read input image {edit_path}: {e}") from e
+
+                    mime_type, _ = mimetypes.guess_type(edit_path)
+                    if not mime_type or not mime_type.startswith("image/"):
+                        mime_type = "image/png"  # Fallback
+
+                    thumbnail_images, _ = provider_instance.edit_image(
+                        instruction=prompt,
+                        image_data=image_bytes,
+                        mime_type=mime_type,
+                    )
+                    metadata = [
+                        {
+                            "provider": "jimeng",
+                            "model": "jimeng_t2i_v40",
+                            "instruction": prompt,
+                            "edit_index": i + 1,
+                            "mime_type": "image/png",
+                            "size_bytes": len(img.data) if hasattr(img, "data") else 0,
+                        }
+                        for i, img in enumerate(thumbnail_images)
+                    ]
+                else:
+                    if input_image_paths:
+                        raise ValidationError(
+                            "Jimeng provider does not support input_image_paths for conditioning yet"
+                        )
+
+                    logger.info("Generate mode (Jimeng): creating new images")
+                    if aspect_ratio:
+                        logger.info(f"Using aspect ratio override: {aspect_ratio}")
+
+                    thumbnail_images, metadata = provider_instance.generate_images(
+                        prompt=prompt,
+                        n=n,
+                        negative_prompt=negative_prompt,
+                        aspect_ratio=aspect_ratio,
+                    )
+
+                    for i, img in enumerate(thumbnail_images):
+                        if i < len(metadata) and isinstance(metadata[i], dict):
+                            metadata[i].setdefault(
+                                "size_bytes", len(img.data) if hasattr(img, "data") else 0
+                            )
 
             # Create response with file paths and thumbnails
             if metadata:
@@ -319,126 +400,179 @@ def register_generate_image_tool(server: FastMCP):
                     }
                     return ToolResult(content=content, structured_content=structured_content)
 
-                # Build summary with mode-specific information
-                action_verb = "Edited" if detected_mode == "edit" else "Generated"
-                model_name = model_info["name"]
-                model_emoji = model_info["emoji"]
-                summary_lines = [
-                    f"✅ {action_verb} {len(metadata)} image(s) with {model_emoji} {model_name}.",
-                    f"📊 **Model**: {selected_tier.value.upper()} tier"
-                ]
+                if provider == "gemini":
+                    # Build summary with mode-specific information
+                    action_verb = "Edited" if detected_mode == "edit" else "Generated"
+                    model_name = model_info["name"]
+                    model_emoji = model_info["emoji"]
+                    summary_lines = [
+                        f"✅ {action_verb} {len(metadata)} image(s) with {model_emoji} {model_name}.",
+                        f"📊 **Model**: {selected_tier.value.upper()} tier"
+                    ]
 
-                # Add Pro-specific information
-                if selected_tier == ModelTier.PRO:
-                    summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
-                    summary_lines.append(f"📏 **Resolution**: {resolution}")
-                    if enable_grounding:
-                        summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
-                summary_lines.append("")  # Blank line
+                    # Add Pro-specific information
+                    if selected_tier == ModelTier.PRO:
+                        summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
+                        summary_lines.append(f"📏 **Resolution**: {resolution}")
+                        if enable_grounding:
+                            summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
+                    summary_lines.append("")  # Blank line
 
-                # Add source information based on mode and inputs
-                if detected_mode == "edit":
-                    if file_id:
-                        summary_lines.append(f"📎 **Edit Source**: Files API {file_id}")
-                    elif input_image_paths and len(input_image_paths) == 1:
-                        summary_lines.append(f"📁 **Edit Source**: {input_image_paths[0]}")
-                elif input_image_paths:
-                    summary_lines.append(
-                        f"🖼️ Conditioned on {len(input_image_paths)} input image(s): {', '.join(input_image_paths)}"
-                    )
-                if aspect_ratio and detected_mode == "generate":
-                    summary_lines.append(f"📐 Aspect ratio: {aspect_ratio}")
-
-                # Add file information
-                result_label = "Edited Images" if detected_mode == "edit" else "Generated Images"
-                summary_lines.append(f"\n📁 **{result_label}:**")
-                for i, meta in enumerate(metadata, 1):
-                    if not meta or not isinstance(meta, dict):
-                        summary_lines.append(f"  {i}. ❌ Invalid metadata entry")
-                        continue
-
-                    size_bytes = meta.get("size_bytes", 0)
-                    size_mb = round(size_bytes / (1024 * 1024), 1) if size_bytes else 0
-                    full_path = meta.get("full_path", "Unknown path")
-                    width = meta.get("width", "?")
-                    height = meta.get("height", "?")
-
-                    # Add Files API and parent info for edits
-                    extra_info = ""
+                    # Add source information based on mode and inputs
                     if detected_mode == "edit":
-                        files_api_info = meta.get("files_api") or {}
-                        if files_api_info.get("name"):
-                            extra_info += f" • 🌐 Files API: {files_api_info['name']}"
-                        if meta.get("parent_file_id"):
-                            extra_info += f" • 👨‍👩‍👧 Parent: {meta.get('parent_file_id')}"
+                        if file_id:
+                            summary_lines.append(f"📎 **Edit Source**: Files API {file_id}")
+                        elif input_image_paths and len(input_image_paths) == 1:
+                            summary_lines.append(f"📁 **Edit Source**: {input_image_paths[0]}")
+                    elif input_image_paths:
+                        summary_lines.append(
+                            f"🖼️ Conditioned on {len(input_image_paths)} input image(s): {', '.join(input_image_paths)}"
+                        )
+                    if aspect_ratio and detected_mode == "generate":
+                        summary_lines.append(f"📐 Aspect ratio: {aspect_ratio}")
+
+                    # Add file information
+                    result_label = "Edited Images" if detected_mode == "edit" else "Generated Images"
+                    summary_lines.append(f"\n📁 **{result_label}:**")
+                    for i, meta in enumerate(metadata, 1):
+                        if not meta or not isinstance(meta, dict):
+                            summary_lines.append(f"  {i}. ❌ Invalid metadata entry")
+                            continue
+
+                        size_bytes = meta.get("size_bytes", 0)
+                        size_mb = round(size_bytes / (1024 * 1024), 1) if size_bytes else 0
+                        full_path = meta.get("full_path", "Unknown path")
+                        width = meta.get("width", "?")
+                        height = meta.get("height", "?")
+
+                        # Add Files API and parent info for edits
+                        extra_info = ""
+                        if detected_mode == "edit":
+                            files_api_info = meta.get("files_api") or {}
+                            if files_api_info.get("name"):
+                                extra_info += f" • 🌐 Files API: {files_api_info['name']}"
+                            if meta.get("parent_file_id"):
+                                extra_info += f" • 👨‍👩‍👧 Parent: {meta.get('parent_file_id')}"
+
+                        summary_lines.append(
+                            f"  {i}. `{full_path}`\n"
+                            f"     📏 {width}x{height} • 💾 {size_mb}MB{extra_info}"
+                        )
 
                     summary_lines.append(
-                        f"  {i}. `{full_path}`\n"
-                        f"     📏 {width}x{height} • 💾 {size_mb}MB{extra_info}"
+                        "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
+                    )
+                else:
+                    action_verb = "Edited" if detected_mode == "edit" else "Generated"
+                    model_id = metadata[0].get("model") if metadata else "jimeng_t2i_v40"
+                    summary_lines = [
+                        f"✅ {action_verb} {len(metadata)} image(s) with Jimeng AI ({model_id})."
+                    ]
+
+                    if detected_mode == "edit" and input_image_paths:
+                        summary_lines.append(f"📁 **Edit Source**: {input_image_paths[0]}")
+                    if aspect_ratio and detected_mode == "generate":
+                        summary_lines.append(f"📐 Aspect ratio: {aspect_ratio}")
+
+                    summary_lines.append(
+                        "\n🖼️ **Images returned inline** (no Files API upload)"
                     )
 
-                summary_lines.append(
-                    "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
-                )
                 full_summary = "\n".join(summary_lines)
-
                 content = [TextContent(type="text", text=full_summary), *thumbnail_images]
             else:
                 # Fallback if no images generated
                 summary = "❌ No images were generated. Please check the logs for details."
                 content = [TextContent(type="text", text=summary)]
 
-            structured_content = {
-                "mode": detected_mode,
-                "model_tier": selected_tier.value,
-                "model_name": model_info["name"],
-                "model_id": model_info["model_id"],
-                "requested_tier": model_tier,
-                "auto_selected": tier == ModelTier.AUTO,
-                "thinking_level": thinking_level if selected_tier == ModelTier.PRO else None,
-                "resolution": resolution,
-                "grounding_enabled": enable_grounding if selected_tier == ModelTier.PRO else False,
-                "requested": n,
-                "returned": len(thumbnail_images),
-                "negative_prompt_applied": bool(negative_prompt),
-                "used_input_images": bool(input_image_paths) or bool(file_id),
-                "input_image_paths": input_image_paths or [],
-                "input_image_count": len(input_image_paths)
-                if input_image_paths
-                else (1 if file_id else 0),
-                "aspect_ratio": aspect_ratio,
-                "source_file_id": file_id,
-                "edit_instruction": prompt if detected_mode == "edit" else None,
-                "generation_prompt": prompt if detected_mode == "generate" else None,
-                "output_method": "file_system_with_files_api",
-                "workflow": f"workflows.md_{detected_mode}_sequence",
-                "images": metadata,
-                "file_paths": [
-                    m.get("full_path")
-                    for m in metadata
-                    if m and isinstance(m, dict) and m.get("full_path")
-                ],
-                "files_api_ids": [
-                    m.get("files_api", {}).get("name")
-                    for m in metadata
-                    if m
-                    and isinstance(m, dict)
-                    and m.get("files_api", {})
-                    and m.get("files_api", {}).get("name")
-                ],
-                "parent_relationships": [
-                    (m.get("parent_file_id"), m.get("files_api", {}).get("name"))
-                    for m in metadata
-                    if m and isinstance(m, dict)
-                ]
-                if detected_mode == "edit"
-                else [],
-                "total_size_mb": round(
-                    sum(m.get("size_bytes", 0) for m in metadata if m and isinstance(m, dict))
-                    / (1024 * 1024),
-                    2,
-                ),
-            }
+            if provider == "gemini":
+                structured_content = {
+                    "mode": detected_mode,
+                    "model_tier": selected_tier.value,
+                    "model_name": model_info["name"],
+                    "model_id": model_info["model_id"],
+                    "requested_tier": model_tier,
+                    "auto_selected": tier == ModelTier.AUTO,
+                    "thinking_level": thinking_level if selected_tier == ModelTier.PRO else None,
+                    "resolution": resolution,
+                    "grounding_enabled": enable_grounding if selected_tier == ModelTier.PRO else False,
+                    "requested": n,
+                    "returned": len(thumbnail_images),
+                    "negative_prompt_applied": bool(negative_prompt),
+                    "used_input_images": bool(input_image_paths) or bool(file_id),
+                    "input_image_paths": input_image_paths or [],
+                    "input_image_count": len(input_image_paths)
+                    if input_image_paths
+                    else (1 if file_id else 0),
+                    "aspect_ratio": aspect_ratio,
+                    "source_file_id": file_id,
+                    "edit_instruction": prompt if detected_mode == "edit" else None,
+                    "generation_prompt": prompt if detected_mode == "generate" else None,
+                    "output_method": "file_system_with_files_api",
+                    "workflow": f"workflows.md_{detected_mode}_sequence",
+                    "images": metadata,
+                    "file_paths": [
+                        m.get("full_path")
+                        for m in metadata
+                        if m and isinstance(m, dict) and m.get("full_path")
+                    ],
+                    "files_api_ids": [
+                        m.get("files_api", {}).get("name")
+                        for m in metadata
+                        if m
+                        and isinstance(m, dict)
+                        and m.get("files_api", {})
+                        and m.get("files_api", {}).get("name")
+                    ],
+                    "parent_relationships": [
+                        (m.get("parent_file_id"), m.get("files_api", {}).get("name"))
+                        for m in metadata
+                        if m and isinstance(m, dict)
+                    ]
+                    if detected_mode == "edit"
+                    else [],
+                    "total_size_mb": round(
+                        sum(m.get("size_bytes", 0) for m in metadata if m and isinstance(m, dict))
+                        / (1024 * 1024),
+                        2,
+                    ),
+                }
+            else:
+                model_id = metadata[0].get("model") if metadata else "jimeng_t2i_v40"
+                structured_content = {
+                    "mode": detected_mode,
+                    "model_tier": "jimeng",
+                    "model_name": "Jimeng AI",
+                    "model_id": model_id,
+                    "requested_tier": None,
+                    "auto_selected": False,
+                    "thinking_level": None,
+                    "resolution": None,
+                    "grounding_enabled": False,
+                    "requested": n,
+                    "returned": len(thumbnail_images),
+                    "negative_prompt_applied": bool(negative_prompt),
+                    "used_input_images": bool(input_image_paths) or bool(file_id),
+                    "input_image_paths": input_image_paths or [],
+                    "input_image_count": len(input_image_paths)
+                    if input_image_paths
+                    else (1 if file_id else 0),
+                    "aspect_ratio": aspect_ratio,
+                    "source_file_id": file_id,
+                    "edit_instruction": prompt if detected_mode == "edit" else None,
+                    "generation_prompt": prompt if detected_mode == "generate" else None,
+                    "output_method": "inline",
+                    "workflow": f"jimeng_{detected_mode}",
+                    "images": metadata,
+                    "file_paths": [],
+                    "files_api_ids": [],
+                    "parent_relationships": [],
+                    "total_size_mb": round(
+                        sum(m.get("size_bytes", 0) for m in metadata if m and isinstance(m, dict))
+                        / (1024 * 1024),
+                        2,
+                    ),
+                }
 
             action_verb = "edited" if detected_mode == "edit" else "generated"
             logger.info(
