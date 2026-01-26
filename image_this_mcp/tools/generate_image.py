@@ -115,6 +115,14 @@ def register_generate_image_tool(server: FastMCP):
                 "Default: 'auto' - uses IMAGE_PROVIDER environment variable or defaults to 'gemini'."
             ),
         ] = "auto",
+        output_dir: Annotated[
+            Optional[str],
+            Field(
+                description="Custom output directory for saving generated images. "
+                "If not specified, uses the default directory (~/image-this). "
+                "Path can be absolute or relative to the current working directory."
+            ),
+        ] = None,
         _ctx: Context = None,
     ) -> ToolResult:
         """
@@ -264,14 +272,14 @@ def register_generate_image_tool(server: FastMCP):
                     # Edit by file_id following workflows.md sequence
                     logger.info(f"Edit mode: using file_id {file_id}")
                     thumbnail_images, metadata = enhanced_image_service.edit_image_by_file_id(
-                        file_id=file_id, edit_prompt=prompt
+                        file_id=file_id, edit_prompt=prompt, output_dir=output_dir
                     )
 
                 elif detected_mode == "edit" and input_image_paths and len(input_image_paths) == 1:
                     # Edit by file path
                     logger.info(f"Edit mode: using file path {input_image_paths[0]}")
                     thumbnail_images, metadata = enhanced_image_service.edit_image_by_path(
-                        instruction=prompt, file_path=input_image_paths[0]
+                        instruction=prompt, file_path=input_image_paths[0], output_dir=output_dir
                     )
 
                 else:
@@ -316,6 +324,7 @@ def register_generate_image_tool(server: FastMCP):
                         system_instruction=system_instruction,
                         input_images=input_images,
                         aspect_ratio=aspect_ratio,
+                        output_dir=output_dir,
                     )
             else:
                 if file_id:
@@ -400,6 +409,7 @@ def register_generate_image_tool(server: FastMCP):
                         image_bytes=image_bytes,
                         mime_type=mime_type or "image/png",
                         metadata=base_meta or None,
+                        output_dir=output_dir,
                     )
                     saved_thumbnails.append(thumbnail_image)
                     saved_metadata.append(file_meta)

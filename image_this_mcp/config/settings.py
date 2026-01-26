@@ -92,8 +92,8 @@ class ServerConfig:
         # Handle image output directory
         output_dir = os.getenv("IMAGE_OUTPUT_DIR", "").strip()
         if not output_dir:
-            # Default to ~/nanobanana-images in user's home directory for better compatibility
-            output_dir = str(Path.home() / "nanobanana-images")
+            # Default to ~/image-this in user's home directory for better compatibility
+            output_dir = str(Path.home() / "image-this")
 
         # Convert to absolute path and ensure it exists
         output_path = Path(output_dir).resolve()

@@ -71,6 +71,7 @@ class EnhancedImageService:
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
         aspect_ratio: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Generate images following the complete workflow from workflows.md.
@@ -92,6 +93,7 @@ class EnhancedImageService:
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
             aspect_ratio: Optional aspect ratio string (e.g., "16:9")
+            output_dir: Optional custom output directory (overrides default)
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -142,6 +144,7 @@ class EnhancedImageService:
                             negative_prompt,
                             system_instruction,
                             aspect_ratio,
+                            output_dir,
                         )
 
                         all_thumbnail_images.append(thumbnail_image)
@@ -160,7 +163,7 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_file_id(
-        self, file_id: str, edit_prompt: str
+        self, file_id: str, edit_prompt: str, output_dir: Optional[str] = None
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit image by file_id following workflows.md pattern.
@@ -180,6 +183,7 @@ class EnhancedImageService:
         Args:
             file_id: Files API file ID to edit
             edit_prompt: Natural language editing instruction
+            output_dir: Optional custom output directory (overrides default)
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -209,7 +213,7 @@ class EnhancedImageService:
             for i, image_bytes in enumerate(edited_images):
                 # Steps 6-9: Process edited image through full workflow
                 thumbnail_image, metadata = self._process_edited_image(
-                    image_bytes, edit_prompt, file_id, i + 1
+                    image_bytes, edit_prompt, file_id, i + 1, output_dir
                 )
 
                 all_thumbnail_images.append(thumbnail_image)
@@ -225,7 +229,7 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_path(
-        self, instruction: str, file_path: str
+        self, instruction: str, file_path: str, output_dir: Optional[str] = None
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit image from local file path following workflows.md pattern for path-based editing.
@@ -235,6 +239,7 @@ class EnhancedImageService:
         Args:
             instruction: Natural language editing instruction
             file_path: Local path to the source image file
+            output_dir: Optional custom output directory (overrides default)
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -282,7 +287,7 @@ class EnhancedImageService:
             for i, edited_image_bytes in enumerate(edited_images):
                 try:
                     thumbnail_image, metadata = self._process_edited_image(
-                        edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1
+                        edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1, output_dir
                     )
 
                     all_thumbnail_images.append(thumbnail_image)
@@ -310,18 +315,35 @@ class EnhancedImageService:
         negative_prompt: Optional[str],
         system_instruction: Optional[str],
         aspect_ratio: Optional[str],
+        output_dir: Optional[str] = None,
     ) -> Tuple[MCPImage, Dict[str, Any]]:
         """
         Process a generated image through the complete workflow.
 
         Steps 3-8 from workflows.md generation sequence.
+
+        Args:
+            image_bytes: Raw image data
+            response_index: Response batch index
+            image_index: Image index within batch
+            prompt: Generation prompt
+            negative_prompt: Negative prompt
+            system_instruction: System instruction
+            aspect_ratio: Aspect ratio
+            output_dir: Optional custom output directory (overrides default)
+
+        Returns:
+            Tuple of (thumbnail_image, metadata)
         """
+        # Use custom output dir if provided, otherwise use default
+        target_out_dir = output_dir or self.out_dir
+
         # Step 3: M->>FS: save full-res image
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
         filename = f"gen_{timestamp}_{response_index}_{image_index}_{image_hash}"
 
-        full_path = os.path.join(self.out_dir, f"{filename}.{self.config.default_image_format}")
+        full_path = os.path.join(target_out_dir, f"{filename}.{self.config.default_image_format}")
         
         # Ensure output directory exists
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -348,7 +370,7 @@ class EnhancedImageService:
                 width, height = img.size
 
         # Step 4: M->>FS: create thumbnail (JPEG)
-        thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
+        thumb_path = os.path.join(target_out_dir, f"{filename}_thumb.jpeg")
         create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
 
         # Step 5-6: M->>F: files.upload -> F-->>M: { name:file_id, uri:file_uri }
@@ -406,19 +428,37 @@ class EnhancedImageService:
         return thumbnail_image, metadata
 
     def _process_edited_image(
-        self, image_bytes: bytes, instruction: str, parent_file_id: Optional[str], edit_index: int
+        self,
+        image_bytes: bytes,
+        instruction: str,
+        parent_file_id: Optional[str],
+        edit_index: int,
+        output_dir: Optional[str] = None,
     ) -> Tuple[MCPImage, Dict[str, Any]]:
         """
         Process an edited image through the complete workflow.
 
         Steps 6-9 from workflows.md editing sequence.
+
+        Args:
+            image_bytes: Raw edited image data
+            instruction: Edit instruction
+            parent_file_id: Parent file ID for tracking
+            edit_index: Edit index
+            output_dir: Optional custom output directory (overrides default)
+
+        Returns:
+            Tuple of (thumbnail_image, metadata)
         """
+        # Use custom output dir if provided, otherwise use default
+        target_out_dir = output_dir or self.out_dir
+
         # Step 6: M->>FS: save new full-res image + new thumbnail
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
         filename = f"edit_{timestamp}_{edit_index}_{image_hash}"
 
-        full_path = os.path.join(self.out_dir, f"{filename}.{self.config.default_image_format}")
+        full_path = os.path.join(target_out_dir, f"{filename}.{self.config.default_image_format}")
         with open(full_path, "wb") as f:
             f.write(image_bytes)
 
@@ -427,7 +467,7 @@ class EnhancedImageService:
             width, height = img.size
 
         # Create 256px thumbnail (JPEG)
-        thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
+        thumb_path = os.path.join(target_out_dir, f"{filename}_thumb.jpeg")
         create_thumbnail(full_path, thumb_path, size=256)
 
         # Step 7-8: M->>F: files.upload -> F-->>M: { name:new_file_id, uri:new_file_uri }

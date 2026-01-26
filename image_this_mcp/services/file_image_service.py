@@ -48,10 +48,14 @@ class FileImageService:
 
     def _get_next_filename(self, extension: str = "png") -> str:
         """Get the next available filename with counter."""
+        return self._get_next_filename_for_dir(extension, self.output_dir)
+
+    def _get_next_filename_for_dir(self, extension: str, directory: Path) -> str:
+        """Get the next available filename with counter for a specific directory."""
         counter = 1
         while True:
             filename = self._generate_filename(extension, counter)
-            if not (self.output_dir / filename).exists():
+            if not (directory / filename).exists():
                 return filename
             counter += 1
             if counter > 999:  # Safety limit
@@ -102,11 +106,26 @@ class FileImageService:
         image_bytes: bytes,
         mime_type: str = "image/png",
         metadata: Optional[Dict[str, Any]] = None,
+        output_dir: Optional[str] = None,
     ) -> Tuple[MCPImage, Dict[str, Any]]:
-        """Save externally generated image bytes to the output directory."""
+        """
+        Save externally generated image bytes to the output directory.
+
+        Args:
+            image_bytes: Raw image data
+            mime_type: MIME type of the image
+            metadata: Optional metadata to include
+            output_dir: Optional custom output directory (overrides default)
+        """
         extension = self._extension_for_mime(mime_type)
-        filename = self._get_next_filename(extension)
-        full_path = self.output_dir / filename
+
+        # Use custom output dir if provided, otherwise use default
+        target_dir = Path(output_dir) if output_dir else self.output_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate filename for the target directory
+        filename = self._get_next_filename_for_dir(extension, target_dir)
+        full_path = target_dir / filename
 
         with open(full_path, "wb") as f:
             f.write(image_bytes)
@@ -144,6 +163,7 @@ class FileImageService:
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
         aspect_ratio: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Generate images using Gemini API and save to file system.
@@ -155,10 +175,14 @@ class FileImageService:
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
             aspect_ratio: Optional aspect ratio string (e.g., "16:9")
+            output_dir: Optional custom output directory (overrides default)
 
         Returns:
             Tuple of (thumbnail_images, file_metadata_list)
         """
+        # Use custom output dir if provided, otherwise use default
+        target_dir = Path(output_dir) if output_dir else self.output_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
         with ProgressContext(
             "image_generation", f"Generating {n} image(s)...", {"prompt": prompt[:100], "count": n}
         ) as progress:
@@ -205,8 +229,8 @@ class FileImageService:
                         )
 
                         # Get filename and full path
-                        filename = self._get_next_filename(self.gemini_config.default_image_format)
-                        full_path = self.output_dir / filename
+                        filename = self._get_next_filename_for_dir(self.gemini_config.default_image_format, target_dir)
+                        full_path = target_dir / filename
 
                         # Save full resolution image
                         with open(full_path, "wb") as f:
@@ -252,13 +276,17 @@ class FileImageService:
 
             progress.update(90, f"Successfully generated {len(thumbnail_images)} image(s)")
             progress.update(
-                100, f"Generated and saved {len(file_metadata)} image(s) to {self.output_dir}"
+                100, f"Generated and saved {len(file_metadata)} image(s) to {target_dir}"
             )
 
             return thumbnail_images, file_metadata
 
     def edit_image(
-        self, instruction: str, base_image_b64: str, mime_type: str = "image/png"
+        self,
+        instruction: str,
+        base_image_b64: str,
+        mime_type: str = "image/png",
+        output_dir: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit an image using conversational instructions and save to file system.
@@ -267,10 +295,14 @@ class FileImageService:
             instruction: Natural language editing instruction
             base_image_b64: Base64 encoded source image
             mime_type: MIME type of source image
+            output_dir: Optional custom output directory (overrides default)
 
         Returns:
             Tuple of (thumbnail_images, file_metadata_list)
         """
+        # Use custom output dir if provided, otherwise use default
+        target_dir = Path(output_dir) if output_dir else self.output_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
         with ProgressContext(
             "image_editing", "Editing image...", {"instruction": instruction[:100]}
         ) as progress:
@@ -305,8 +337,8 @@ class FileImageService:
                     )
 
                     # Get filename and full path
-                    filename = self._get_next_filename(self.gemini_config.default_image_format)
-                    full_path = self.output_dir / filename
+                    filename = self._get_next_filename_for_dir(self.gemini_config.default_image_format, target_dir)
+                    full_path = target_dir / filename
 
                     # Save full resolution image
                     with open(full_path, "wb") as f:
