@@ -509,7 +509,7 @@ GCP_PROJECT_ID=your-project-id
 GCP_REGION=us-central1
 
 # Model Selection (optional)
-NANOBANANA_MODEL=auto  # Options: flash, pro, auto (default: auto)
+NANOBANANA_MODEL=pro  # Options: flash, pro, auto (default: pro)
 
 # Optional
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images

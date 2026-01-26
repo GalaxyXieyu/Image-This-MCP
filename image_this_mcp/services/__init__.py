@@ -28,6 +28,7 @@ _gemini_client: Optional[GeminiClient] = None
 _file_image_service: Optional[FileImageService] = None
 _file_service: Optional[FileService] = None
 _enhanced_image_service: Optional[EnhancedImageService] = None
+_pro_enhanced_image_service: Optional[EnhancedImageService] = None
 _files_api_service: Optional[FilesAPIService] = None
 _image_database_service: Optional[ImageDatabaseService] = None
 _image_storage_service: Optional[ImageStorageService] = None
@@ -47,6 +48,7 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _file_image_service, \
         _file_service, \
         _enhanced_image_service, \
+        _pro_enhanced_image_service, \
         _files_api_service, \
         _image_database_service, \
         _image_storage_service, \
@@ -87,6 +89,14 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _pro_gemini_client,
         pro_config,
         _image_storage_service
+    )
+
+    _pro_enhanced_image_service = EnhancedImageService(
+        _pro_gemini_client,
+        _files_api_service,
+        _image_database_service,
+        pro_config,
+        out_dir,
     )
 
     # Create model selector
@@ -143,6 +153,13 @@ def get_enhanced_image_service() -> EnhancedImageService:
     if _enhanced_image_service is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _enhanced_image_service
+
+
+def get_pro_enhanced_image_service() -> EnhancedImageService:
+    """Get the Pro model enhanced image service instance."""
+    if _pro_enhanced_image_service is None:
+        raise RuntimeError("Services not initialized. Call initialize_services() first.")
+    return _pro_enhanced_image_service
 
 
 def get_files_api_service() -> FilesAPIService:

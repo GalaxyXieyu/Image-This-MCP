@@ -123,6 +123,7 @@ class JimengProvider(BaseImageProvider):
         """
         all_images = []
         all_metadata = []
+        last_error = None
 
         # Jimeng typically generates 1 image per request, so we loop
         for i in range(n):
@@ -174,9 +175,13 @@ class JimengProvider(BaseImageProvider):
                 )
 
             except Exception as e:
+                last_error = e
                 self.logger.error(f"Failed to generate image {i + 1}/{n}: {e}")
                 # Continue with next image rather than failing completely
                 continue
+
+        if not all_images:
+            raise last_error or ValueError("Jimeng API returned no images")
 
         return all_images, all_metadata
 

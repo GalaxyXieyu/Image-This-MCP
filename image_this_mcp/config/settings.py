@@ -151,7 +151,7 @@ class ProImageConfig(BaseModelConfig):
 @dataclass
 class ModelSelectionConfig:
     """Configuration for intelligent model selection."""
-    default_tier: ModelTier = ModelTier.AUTO
+    default_tier: ModelTier = ModelTier.PRO
     auto_quality_keywords: List[str] = field(default_factory=lambda: [
         "4k", "high quality", "professional", "production",
         "high-res", "high resolution", "detailed", "sharp", "crisp",
@@ -167,7 +167,7 @@ class ModelSelectionConfig:
         """Load model selection config from environment."""
         load_dotenv()
 
-        model_tier_str = os.getenv("NANOBANANA_MODEL", "auto").lower()
+        model_tier_str = os.getenv("NANOBANANA_MODEL", "pro").lower()
         try:
             default_tier = ModelTier(model_tier_str)
         except ValueError:
@@ -216,4 +216,3 @@ class JimengConfig:
     def validate_credentials(self) -> bool:
         """Validate that required credentials are present."""
         return bool(self.access_key and self.secret_key)
-

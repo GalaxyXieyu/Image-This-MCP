@@ -76,9 +76,9 @@ def register_generate_image_tool(server: FastMCP):
             Optional[str],
             Field(
                 description="Model tier: 'flash' (speed, 1024px), 'pro' (quality, up to 4K), or 'auto' (smart selection). "
-                "Default: 'auto' - automatically selects based on prompt quality/speed indicators."
+                "Default: 'pro' - prefer Gemini 3 Pro for quality."
             ),
-        ] = "auto",
+        ] = "pro",
         resolution: Annotated[
             Optional[str],
             Field(
@@ -257,7 +257,7 @@ def register_generate_image_tool(server: FastMCP):
                 )
 
                 # Get enhanced image service (would be injected in real implementation)
-                enhanced_image_service = _get_enhanced_image_service()
+                enhanced_image_service = _get_enhanced_image_service(selected_tier)
 
                 # Execute based on detected mode
                 if detected_mode == "edit" and file_id:
@@ -385,6 +385,31 @@ def register_generate_image_tool(server: FastMCP):
                                 "size_bytes", len(img.data) if hasattr(img, "data") else 0
                             )
 
+                file_service = services.get_file_image_service()
+                saved_thumbnails = []
+                saved_metadata = []
+                for i, img in enumerate(thumbnail_images):
+                    image_bytes = getattr(img, "data", None)
+                    if not image_bytes:
+                        logger.warning(f"Jimeng returned empty image data at index {i + 1}")
+                        continue
+
+                    base_meta = metadata[i] if i < len(metadata) and isinstance(metadata[i], dict) else {}
+                    mime_type = base_meta.get("mime_type") if base_meta else None
+                    thumbnail_image, file_meta = file_service.save_external_image(
+                        image_bytes=image_bytes,
+                        mime_type=mime_type or "image/png",
+                        metadata=base_meta or None,
+                    )
+                    saved_thumbnails.append(thumbnail_image)
+                    saved_metadata.append(file_meta)
+
+                if not saved_metadata:
+                    raise ValidationError("Jimeng provider returned no images to save")
+
+                thumbnail_images = saved_thumbnails
+                metadata = saved_metadata
+
             # Create response with file paths and thumbnails
             if metadata:
                 # Filter out any None entries from metadata (defensive programming)
@@ -474,8 +499,26 @@ def register_generate_image_tool(server: FastMCP):
                     if aspect_ratio and detected_mode == "generate":
                         summary_lines.append(f"📐 Aspect ratio: {aspect_ratio}")
 
+                    result_label = "Edited Images" if detected_mode == "edit" else "Generated Images"
+                    summary_lines.append(f"\n📁 **{result_label}:**")
+                    for i, meta in enumerate(metadata, 1):
+                        if not meta or not isinstance(meta, dict):
+                            summary_lines.append(f"  {i}. ❌ Invalid metadata entry")
+                            continue
+
+                        size_bytes = meta.get("size_bytes", 0)
+                        size_mb = round(size_bytes / (1024 * 1024), 1) if size_bytes else 0
+                        full_path = meta.get("full_path", "Unknown path")
+                        width = meta.get("width", "?")
+                        height = meta.get("height", "?")
+
+                        summary_lines.append(
+                            f"  {i}. `{full_path}`\n"
+                            f"     📏 {width}x{height} • 💾 {size_mb}MB"
+                        )
+
                     summary_lines.append(
-                        "\n🖼️ **Images returned inline** (no Files API upload)"
+                        "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
                     )
 
                 full_summary = "\n".join(summary_lines)
@@ -561,10 +604,14 @@ def register_generate_image_tool(server: FastMCP):
                     "source_file_id": file_id,
                     "edit_instruction": prompt if detected_mode == "edit" else None,
                     "generation_prompt": prompt if detected_mode == "generate" else None,
-                    "output_method": "inline",
+                    "output_method": "file_system",
                     "workflow": f"jimeng_{detected_mode}",
                     "images": metadata,
-                    "file_paths": [],
+                    "file_paths": [
+                        m.get("full_path")
+                        for m in metadata
+                        if m and isinstance(m, dict) and m.get("full_path")
+                    ],
                     "files_api_ids": [],
                     "parent_relationships": [],
                     "total_size_mb": round(
@@ -589,7 +636,10 @@ def register_generate_image_tool(server: FastMCP):
             raise
 
 
-def _get_enhanced_image_service():
+def _get_enhanced_image_service(selected_tier: ModelTier | None = None):
     """Get the enhanced image service instance."""
-    from ..services import get_enhanced_image_service
+    from ..services import get_enhanced_image_service, get_pro_enhanced_image_service
+
+    if selected_tier == ModelTier.PRO:
+        return get_pro_enhanced_image_service()
     return get_enhanced_image_service()

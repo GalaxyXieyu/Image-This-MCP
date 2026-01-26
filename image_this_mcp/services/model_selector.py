@@ -98,6 +98,12 @@ class ModelSelector:
         Returns:
             Selected ModelTier (FLASH or PRO)
         """
+        if self.config.default_tier in (ModelTier.FLASH, ModelTier.PRO):
+            self.logger.info(
+                f"Default model tier forced to {self.config.default_tier.value.upper()}"
+            )
+            return self.config.default_tier
+
         quality_score = 0
         speed_score = 0
 

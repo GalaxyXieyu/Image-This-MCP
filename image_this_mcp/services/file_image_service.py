@@ -3,6 +3,7 @@ File-based image service that saves images to a user-specified directory.
 Replaces the temporary storage system with persistent file output.
 """
 
+import mimetypes
 import time
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
@@ -90,6 +91,50 @@ class FileImageService:
         except Exception as e:
             self.logger.error(f"Failed to generate thumbnail: {e}")
             raise
+
+    def _extension_for_mime(self, mime_type: str) -> str:
+        """Resolve a file extension for a MIME type."""
+        extension = mimetypes.guess_extension(mime_type) or f".{self.gemini_config.default_image_format}"
+        return extension.lstrip(".")
+
+    def save_external_image(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/png",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[MCPImage, Dict[str, Any]]:
+        """Save externally generated image bytes to the output directory."""
+        extension = self._extension_for_mime(mime_type)
+        filename = self._get_next_filename(extension)
+        full_path = self.output_dir / filename
+
+        with open(full_path, "wb") as f:
+            f.write(image_bytes)
+
+        image = PILImage.open(io.BytesIO(image_bytes))
+        width, height = image.size
+
+        thumbnail_bytes, thumb_w, thumb_h = self._generate_thumbnail(image_bytes)
+        thumbnail_image = MCPImage(data=thumbnail_bytes, format="jpeg")
+
+        file_metadata = {
+            "filename": filename,
+            "full_path": str(full_path),
+            "size_bytes": len(image_bytes),
+            "thumbnail_size_bytes": len(thumbnail_bytes),
+            "width": width,
+            "height": height,
+            "thumbnail_width": thumb_w,
+            "thumbnail_height": thumb_h,
+            "mime_type": mime_type,
+            "created_at": time.time(),
+        }
+
+        if metadata:
+            file_metadata = {**metadata, **file_metadata}
+
+        self.logger.info(f"Saved external image to {full_path} ({len(image_bytes)} bytes)")
+        return thumbnail_image, file_metadata
 
     def generate_images(
         self,
