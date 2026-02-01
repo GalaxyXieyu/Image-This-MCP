@@ -287,7 +287,7 @@ class EnhancedImageService:
             for i, edited_image_bytes in enumerate(edited_images):
                 try:
                     thumbnail_image, metadata = self._process_edited_image(
-                        edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1, output_dir
+                        edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1, output_dir=output_dir
                     )
 
                     all_thumbnail_images.append(thumbnail_image)
