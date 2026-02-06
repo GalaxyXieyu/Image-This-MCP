@@ -11,7 +11,8 @@ from typing import Dict, Type, Optional, List
 from .base import BaseImageProvider
 from .gemini_provider import GeminiProvider
 from .jimeng_provider import JimengProvider
-from ...config.settings import ServerConfig, GeminiConfig, JimengConfig
+from .jimeng45_provider import Jimeng45Provider
+from ...config.settings import ServerConfig, GeminiConfig, JimengConfig, Jimeng45Config
 from ..gemini_client import GeminiClient
 from ..image_storage_service import ImageStorageService
 
@@ -33,6 +34,7 @@ class ProviderFactory:
     _provider_classes: Dict[str, Type[BaseImageProvider]] = {
         "gemini": GeminiProvider,
         "jimeng": JimengProvider,
+        "jimeng45": Jimeng45Provider,
     }
     _storage_service: Optional[ImageStorageService] = None
 
@@ -147,7 +149,8 @@ class ProviderFactory:
         cls,
         server_config: ServerConfig,
         gemini_config: Optional[GeminiConfig] = None,
-        jimeng_config: Optional[JimengConfig] = None
+        jimeng_config: Optional[JimengConfig] = None,
+        jimeng45_config: Optional[Jimeng45Config] = None
     ):
         """
         Initialize all available providers.
@@ -159,6 +162,7 @@ class ProviderFactory:
             server_config: Server configuration
             gemini_config: Optional Gemini configuration
             jimeng_config: Optional Jimeng configuration
+            jimeng45_config: Optional Jimeng 4.5 configuration
         """
         logger.info("Initializing providers...")
 
@@ -194,6 +198,22 @@ class ProviderFactory:
                 logger.warning("  Jimeng features will be unavailable")
         elif jimeng_config:
             logger.warning("✗ Jimeng provider skipped: missing credentials")
+
+        # Initialize Jimeng 4.5 provider
+        if jimeng45_config and jimeng45_config.validate_credentials():
+            try:
+                jimeng45_provider = cls.create_provider(
+                    "jimeng45",
+                    config=jimeng45_config
+                )
+                cls._providers["jimeng45"] = jimeng45_provider
+                logger.info("✓ Jimeng 4.5 provider initialized")
+
+            except Exception as e:
+                logger.warning(f"✗ Jimeng 4.5 provider initialization failed: {e}")
+                logger.warning("  Jimeng 4.5 features will be unavailable")
+        elif jimeng45_config:
+            logger.warning("✗ Jimeng 4.5 provider skipped: missing credentials")
 
         # Summary
         initialized = list(cls._providers.keys())

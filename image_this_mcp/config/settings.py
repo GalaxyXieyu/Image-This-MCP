@@ -6,6 +6,26 @@ from typing import Optional, List
 
 from dotenv import load_dotenv
 
+_ENV_LOADED = False
+
+
+def load_env() -> None:
+    """加载 .env（优先使用显式路径，其次尝试项目根目录）。"""
+    global _ENV_LOADED
+    if _ENV_LOADED:
+        return
+
+    dotenv_path = os.getenv("NANOBANANA_ENV_PATH") or os.getenv("DOTENV_PATH")
+    if dotenv_path:
+        load_dotenv(dotenv_path=dotenv_path)
+    else:
+        load_dotenv()
+        repo_env = Path(__file__).resolve().parents[2] / ".env"
+        if repo_env.exists():
+            load_dotenv(dotenv_path=repo_env)
+
+    _ENV_LOADED = True
+
 from ..core.exceptions import ADCConfigurationError
 from .constants import AUTH_ERROR_MESSAGES
 
@@ -58,7 +78,7 @@ class ServerConfig:
     @classmethod
     def from_env(cls) -> "ServerConfig":
         """Load configuration from environment variables."""
-        load_dotenv()
+        load_env()
 
         # Auth method
         auth_method_str = os.getenv("NANOBANANA_AUTH_METHOD", "auto").lower()
@@ -165,7 +185,7 @@ class ModelSelectionConfig:
     @classmethod
     def from_env(cls) -> "ModelSelectionConfig":
         """Load model selection config from environment."""
-        load_dotenv()
+        load_env()
 
         model_tier_str = os.getenv("NANOBANANA_MODEL", "pro").lower()
         try:
@@ -205,7 +225,7 @@ class JimengConfig:
     @classmethod
     def from_env(cls) -> "JimengConfig":
         """Load configuration from environment variables."""
-        load_dotenv()
+        load_env()
 
         return cls(
             access_key=os.getenv("JIMENG_ACCESS_KEY"),
@@ -216,3 +236,72 @@ class JimengConfig:
     def validate_credentials(self) -> bool:
         """Validate that required credentials are present."""
         return bool(self.access_key and self.secret_key)
+
+
+@dataclass
+class Jimeng45Config:
+    """Jimeng 4.5 (Seedream 4.5 via Ark API) configuration."""
+
+    api_key: Optional[str] = None
+    api_endpoint: str = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+    model: str = "doubao-seedream-4.5"  # or custom endpoint ID like 'ep-xxxx'
+    default_size: str = "1728x2304"  # 3:4 portrait ratio for Xiaohongshu
+    response_format: str = "b64_json"  # 'b64_json' or 'url'
+    request_timeout: int = 120  # seconds
+    max_retries: int = 3  # Number of retries for failed requests
+    retry_delay: int = 5  # Initial retry delay in seconds
+    watermark: bool = False  # Add AI-generated watermark
+    sequential_image_generation: str = "disabled"  # 'disabled' or 'auto'
+
+    # Supported sizes (format: "WIDTHxHEIGHT")
+    # Total pixels must be between [3686400, 16777216] for Jimeng 4.5
+    SUPPORTED_SIZES = [
+        "1024x1024",  # 1:1
+        "1024x1365",  # 3:4
+        "1024x1536",  # 2:3
+        "1728x2304",  # 3:4 (Xiaohongshu optimized)
+        "1536x2048",  # 3:4
+        "2048x2731",  # 3:4
+        "2304x1728",  # 4:3
+        "2048x1536",  # 4:3
+        "1920x1080",  # 16:9
+        "1080x1920",  # 9:16
+    ]
+
+    @classmethod
+    def from_env(cls) -> "Jimeng45Config":
+        """Load configuration from environment variables."""
+        load_env()
+
+        return cls(
+            api_key=os.getenv("JIMENG45_API_KEY") or os.getenv("ARK_API_KEY"),
+            api_endpoint=os.getenv(
+                "JIMENG45_API_ENDPOINT",
+                "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+            ),
+            model=os.getenv("JIMENG45_MODEL", "doubao-seedream-4.5"),
+            default_size=os.getenv("JIMENG45_SIZE", "1728x2304"),
+            response_format=os.getenv("JIMENG45_RESPONSE_FORMAT", "b64_json"),
+            request_timeout=int(os.getenv("JIMENG45_TIMEOUT", "120")),
+            max_retries=int(os.getenv("JIMENG45_MAX_RETRIES", "3")),
+            retry_delay=int(os.getenv("JIMENG45_RETRY_DELAY", "5")),
+            watermark=os.getenv("JIMENG45_WATERMARK", "false").lower() == "true",
+            sequential_image_generation=os.getenv("JIMENG45_SEQUENTIAL", "disabled"),
+        )
+
+    def validate_credentials(self) -> bool:
+        """Validate that required credentials are present."""
+        return bool(self.api_key)
+
+    def validate_size(self, size: str) -> bool:
+        """Validate that the size is supported."""
+        if size in self.SUPPORTED_SIZES:
+            return True
+
+        # Check pixel count
+        try:
+            width, height = map(int, size.lower().split("x"))
+            total_pixels = width * height
+            return 3686400 <= total_pixels <= 16777216
+        except (ValueError, AttributeError):
+            return False
