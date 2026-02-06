@@ -96,6 +96,46 @@ Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
 #### 1. API Key Authentication (Default)
 Set `GEMINI_API_KEY` environment variable.
 
+### OpenClaw Plugin (Jimeng 4.5, no MCP server)
+
+If you want to use OpenClaw directly (bypassing the MCP server), install the plugin in this repo and configure OpenClaw:
+
+```bash
+openclaw plugins install -l ./openclaw-plugin
+openclaw gateway restart
+```
+
+Add to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "plugins": {
+    "enabled": true,
+    "entries": {
+      "image-this-jimeng45": {
+        "enabled": true,
+        "config": {
+          "apiKey": "<YOUR_ARK_API_KEY>",
+          "baseUrl": "https://ark.cn-beijing.volces.com/api/v3/images/generations",
+          "model": "doubao-seedream-4.5",
+          "size": "1728x2304",
+          "watermark": false,
+          "timeoutMs": 120000,
+          "superbedToken": "<YOUR_SUPERBED_TOKEN>"
+        }
+      }
+    }
+  },
+  "tools": {
+    "allow": ["image-this-jimeng45"]
+  }
+}
+```
+
+Notes:
+- If `superbedToken` is set, the tool uploads the image to Superbed and returns a `MEDIA: <url>` line plus a Markdown image link. This makes the image show up in OpenClaw channels that support media.
+- If `superbedToken` is not set, the tool only returns base64 image data in tool output, which may not render as an image in chat.
+
 #### 2. Third-Party Banana API Support
 You can use third-party Banana API services that are compatible with Gemini API by setting a custom API base URL:
 

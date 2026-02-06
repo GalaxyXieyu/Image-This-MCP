@@ -1,0 +1,52 @@
+{
+  "id": "image-this-jimeng45",
+  "name": "Image This (Jimeng 4.5)",
+  "description": "Generate images via Jimeng 4.5 (Ark / doubao-seedream-4.5) without MCP server.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "Ark API Key (Bearer)."
+      },
+      "baseUrl": {
+        "type": "string",
+        "description": "Ark images generations endpoint. Default: https://ark.cn-beijing.volces.com/api/v3/images/generations"
+      },
+      "model": {
+        "type": "string",
+        "description": "Model id. Default: doubao-seedream-4.5"
+      },
+      "size": {
+        "type": "string",
+        "description": "Default size, e.g. 1728x2304"
+      },
+      "watermark": {
+        "type": "boolean",
+        "description": "Whether to add watermark. Default false"
+      },
+      "superbedToken": {
+        "type": "string",
+        "description": "Optional: Superbed token for uploading raw base64 reference images"
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 180000,
+        "description": "Request timeout (ms)."
+      }
+    },
+    "required": ["apiKey"]
+  },
+  "uiHints": {
+    "apiKey": { "label": "Ark API Key", "sensitive": true },
+    "baseUrl": { "label": "Ark Base URL" },
+    "model": { "label": "Model" },
+    "size": { "label": "Size" },
+    "watermark": { "label": "Watermark" },
+    "superbedToken": { "label": "Superbed Token", "sensitive": true },
+    "timeoutMs": { "label": "Timeout (ms)" }
+  }
+}
