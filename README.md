@@ -135,6 +135,12 @@ Add to `~/.openclaw/openclaw.json`:
 Notes:
 - If `superbedToken` is set, the tool uploads the image to Superbed and returns a `MEDIA: <url>` line plus a Markdown image link. This makes the image show up in OpenClaw channels that support media.
 - If `superbedToken` is not set, the tool only returns base64 image data in tool output, which may not render as an image in chat.
+- Reference images (`referenceImages`) accept:
+  - HTTP/HTTPS URLs
+  - `data:image/*;base64,...` data URLs (will be sanitized)
+  - Raw base64 strings (will be wrapped as data URLs)
+  - Local file paths (e.g. `~/Pictures/ref.jpg` or `file:///...`) which are read and encoded
+- Size: Jimeng 4.5 rejects small sizes (e.g. `1024x1024`). The plugin auto-falls back to `1728x2304` if total pixels are below 3,686,400, and adds `sizeRequested/sizeAdjusted/sizeNote` to metadata.
 
 #### 2. Third-Party Banana API Support
 You can use third-party Banana API services that are compatible with Gemini API by setting a custom API base URL:

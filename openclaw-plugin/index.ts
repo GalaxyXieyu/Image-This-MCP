@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations";
 const DEFAULT_MODEL = "doubao-seedream-4.5";
 const DEFAULT_SIZE = "1728x2304";
+const MIN_PIXELS = 3686400;
 const DEFAULT_TIMEOUT_MS = 120000;
 const PLUGIN_ID = "image-this-jimeng45";
 
@@ -41,11 +43,11 @@ function registerTools(api: any) {
             throw new Error("prompt is required");
           }
 
-          const size = (params?.size ? String(params.size) : cfg.size) || DEFAULT_SIZE;
+          const requestedSize = (params?.size ? String(params.size) : cfg.size) || DEFAULT_SIZE;
+          const sizeInfo = normalizeSize(requestedSize, DEFAULT_SIZE);
+          const size = sizeInfo.size;
           const watermark = typeof params?.watermark === "boolean" ? params.watermark : cfg.watermark;
-          const referenceImages: string[] | undefined = Array.isArray(params?.referenceImages)
-            ? params!.referenceImages.map((v: any) => String(v || "").trim()).filter(Boolean)
-            : undefined;
+          const referenceImages: string[] | undefined = normalizeReferenceImagesInput(params?.referenceImages);
 
           const { imageBase64, mimeType, metadata } = await generateSeedream45({
             apiKey: cfg.apiKey,
@@ -68,7 +70,14 @@ function registerTools(api: any) {
             textParts.push(`MEDIA: ${imageUrl}`);
             textParts.push(`![seedream-45](${imageUrl})`);
           }
-          textParts.push(JSON.stringify({ ...metadata, imageUrl }, null, 2));
+          const outputMeta = {
+            ...metadata,
+            imageUrl,
+            sizeRequested: sizeInfo.requested,
+            sizeAdjusted: sizeInfo.adjusted,
+            sizeNote: sizeInfo.note,
+          };
+          textParts.push(JSON.stringify(outputMeta, null, 2));
 
           if (imageUrl) {
             return {
@@ -197,11 +206,135 @@ function stripBase64Header(base64: string) {
   return base64.replace(/^data:image\/[^;]+;base64,/, "");
 }
 
-async function uploadBase64ToSuperbed(base64: string, filename: string, token: string): Promise<string> {
-  const cleanBase64 = stripBase64Header(base64);
+function normalizeBase64(value: string) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+}
+
+function isValidBase64(value: string) {
+  const clean = normalizeBase64(value);
+  if (!clean) return false;
+  if (!/^[A-Za-z0-9+/=]+$/.test(clean)) return false;
+  if (clean.length % 4 === 1) return false;
+  if (clean.includes("=") && !/={0,2}$/.test(clean)) return false;
+  return true;
+}
+
+function parseDataUrl(value: string) {
+  const match = String(value || "").trim().match(/^data:(image\/[^;]+);base64,(.*)$/i);
+  if (!match) return null;
+  const mimeType = match[1];
+  const base64 = normalizeBase64(match[2]);
+  if (!isValidBase64(base64)) {
+    throw new Error("Invalid base64 image data URL");
+  }
+  return {
+    mimeType,
+    base64,
+    dataUrl: `data:${mimeType};base64,${base64}`,
+  };
+}
+
+function guessMimeType(filePath: string) {
+  const ext = path.extname(filePath || "").toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
+  if (ext === ".bmp") return "image/bmp";
+  if (ext === ".heic") return "image/heic";
+  return "image/png";
+}
+
+function expandHomeDir(filePath: string) {
+  if (filePath.startsWith("~/")) {
+    return path.join(os.homedir(), filePath.slice(2));
+  }
+  return filePath;
+}
+
+function resolveLocalFile(value: string) {
+  let filePath = String(value || "").trim();
+  if (!filePath) return null;
+  try {
+    if (filePath.startsWith("file://")) {
+      filePath = fileURLToPath(filePath);
+    }
+  } catch {
+    return null;
+  }
+  filePath = expandHomeDir(filePath);
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return null;
+  } catch {
+    return null;
+  }
+  const bytes = fs.readFileSync(filePath);
+  const mimeType = guessMimeType(filePath);
+  const base64 = bytes.toString("base64");
+  return {
+    filePath,
+    mimeType,
+    base64,
+    dataUrl: `data:${mimeType};base64,${base64}`,
+    filename: path.basename(filePath),
+  };
+}
+
+function normalizeSize(requested: string, fallback: string) {
+  const raw = String(requested || "").trim();
+  if (!raw) {
+    return { size: fallback, requested: raw, adjusted: true, note: "size empty; fallback applied" };
+  }
+  const match = raw.match(/^(\d+)\s*x\s*(\d+)$/i);
+  if (!match) {
+    return { size: fallback, requested: raw, adjusted: true, note: "size format invalid; fallback applied" };
+  }
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { size: fallback, requested: raw, adjusted: true, note: "size invalid; fallback applied" };
+  }
+  const pixels = width * height;
+  if (pixels < MIN_PIXELS) {
+    return {
+      size: fallback,
+      requested: raw,
+      adjusted: true,
+      note: `size too small (${width}x${height}); min pixels ${MIN_PIXELS}; fallback applied`,
+    };
+  }
+  return { size: `${width}x${height}`, requested: raw, adjusted: false, note: undefined };
+}
+
+function normalizeReferenceImagesInput(value: any) {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    const v = value.trim();
+    return v ? [v] : undefined;
+  }
+  return undefined;
+}
+
+async function uploadBase64ToSuperbed(
+  base64: string,
+  filename: string,
+  token: string,
+  mimeType?: string
+): Promise<string> {
+  const cleanBase64 = normalizeBase64(stripBase64Header(base64));
   const buffer = Buffer.from(cleanBase64, "base64");
 
-  const blob = new Blob([buffer], { type: "image/jpeg" });
+  const parsedDataUrl = parseDataUrl(base64);
+  const resolvedMimeType = mimeType || parsedDataUrl?.mimeType || "image/jpeg";
+  const blob = new Blob([buffer], { type: resolvedMimeType });
   const formData = new FormData();
   formData.append("file", blob, filename.replace(/\.png$/i, ".jpg"));
 
@@ -234,16 +367,53 @@ async function normalizeReferenceImages(images: string[] | undefined, superbedTo
     const v = String(raw || "").trim();
     if (!v) continue;
 
-    if (isHttpUrl(v) || v.startsWith("data:image/")) {
+    if (isHttpUrl(v)) {
       out.push(v);
       continue;
     }
 
+    const dataUrlInfo = parseDataUrl(v);
+    if (dataUrlInfo) {
+      if (superbedToken) {
+        const url = await uploadBase64ToSuperbed(
+          dataUrlInfo.base64,
+          `seedream-${Date.now()}.png`,
+          superbedToken,
+          dataUrlInfo.mimeType
+        );
+        out.push(url);
+      } else {
+        out.push(dataUrlInfo.dataUrl);
+      }
+      continue;
+    }
+
+    const localFile = resolveLocalFile(v);
+    if (localFile) {
+      if (superbedToken) {
+        const url = await uploadBase64ToSuperbed(
+          localFile.base64,
+          localFile.filename || `seedream-${Date.now()}.png`,
+          superbedToken,
+          localFile.mimeType
+        );
+        out.push(url);
+      } else {
+        out.push(localFile.dataUrl);
+      }
+      continue;
+    }
+
+    const cleaned = normalizeBase64(v);
+    if (!isValidBase64(cleaned)) {
+      throw new Error("Invalid reference image: expected URL, data URL, base64, or readable local file path");
+    }
+
     if (superbedToken) {
-      const url = await uploadBase64ToSuperbed(v, `seedream-${Date.now()}.png`, superbedToken);
+      const url = await uploadBase64ToSuperbed(cleaned, `seedream-${Date.now()}.png`, superbedToken);
       out.push(url);
     } else {
-      out.push(`data:image/png;base64,${v}`);
+      out.push(`data:image/png;base64,${cleaned}`);
     }
   }
 
