@@ -1,7 +1,7 @@
 {
-  "id": "image-this-jimeng45",
-  "name": "Image This (Jimeng 4.5)",
-  "description": "Generate images via Jimeng 4.5 (Ark / doubao-seedream-4.5) without MCP server.",
+  "id": "img-generator",
+  "name": "img-generator",
+  "description": "Generate images via Volcengine Ark Seedream (doubao-seedream-4-5-251128) without MCP server.",
   "version": "0.1.0",
   "configSchema": {
     "type": "object",
@@ -17,7 +17,7 @@
       },
       "model": {
         "type": "string",
-        "description": "Model id. Default: doubao-seedream-4.5"
+        "description": "Model id. Default: doubao-seedream-4-5-251128"
       },
       "size": {
         "type": "string",
