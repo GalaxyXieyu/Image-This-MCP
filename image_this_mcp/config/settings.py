@@ -32,7 +32,7 @@ from .constants import AUTH_ERROR_MESSAGES
 
 class ModelTier(str, Enum):
     """Model selection options."""
-    FLASH = "flash"  # Speed-optimized (Gemini 2.5 Flash)
+    FLASH = "flash"  # Speed-optimized (Gemini 3.1 Flash preview)
     PRO = "pro"      # Quality-optimized (Gemini 3 Pro)
     AUTO = "auto"    # Automatic selection
 
@@ -145,8 +145,8 @@ class BaseModelConfig:
 
 @dataclass
 class FlashImageConfig(BaseModelConfig):
-    """Gemini 2.5 Flash Image configuration (speed-optimized)."""
-    model_name: str = "gemini-2.5-flash-image"
+    """Gemini 3.1 Flash Image Preview configuration (speed-optimized)."""
+    model_name: str = "gemini-3.1-flash-image-preview"
     max_resolution: int = 1024
     supports_thinking: bool = False
     supports_grounding: bool = False
@@ -171,7 +171,7 @@ class ProImageConfig(BaseModelConfig):
 @dataclass
 class ModelSelectionConfig:
     """Configuration for intelligent model selection."""
-    default_tier: ModelTier = ModelTier.PRO
+    default_tier: ModelTier = ModelTier.FLASH
     auto_quality_keywords: List[str] = field(default_factory=lambda: [
         "4k", "high quality", "professional", "production",
         "high-res", "high resolution", "detailed", "sharp", "crisp",
@@ -187,7 +187,7 @@ class ModelSelectionConfig:
         """Load model selection config from environment."""
         load_env()
 
-        model_tier_str = os.getenv("NANOBANANA_MODEL", "pro").lower()
+        model_tier_str = os.getenv("NANOBANANA_MODEL", "flash").lower()
         try:
             default_tier = ModelTier(model_tier_str)
         except ValueError:
@@ -199,7 +199,7 @@ class ModelSelectionConfig:
 @dataclass
 class GeminiConfig:
     """Legacy Gemini API configuration (backward compatibility)."""
-    model_name: str = "gemini-2.5-flash-image"
+    model_name: str = "gemini-3.1-flash-image-preview"
     max_images_per_request: int = 4
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB
     default_image_format: str = "png"

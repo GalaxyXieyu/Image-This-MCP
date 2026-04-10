@@ -27,7 +27,7 @@ class ModelSelector:
         Initialize model selector.
 
         Args:
-            flash_service: Gemini 2.5 Flash Image service (speed-optimized)
+            flash_service: Gemini 3.1 Flash Image Preview service (speed-optimized)
             pro_service: Gemini 3 Pro Image service (quality-optimized)
             selection_config: Selection strategy configuration
         """
@@ -209,13 +209,14 @@ class ModelSelector:
         else:  # FLASH
             return {
                 "tier": "flash",
-                "name": "Gemini 2.5 Flash Image",
-                "model_id": "gemini-2.5-flash-image",
+                "name": "Gemini 3.1 Flash Image Preview",
+                "model_id": "gemini-3.1-flash-image-preview",
                 "max_resolution": "1024px",
                 "features": [
                     "Very fast generation",
                     "Low latency",
-                    "High-volume support"
+                    "High-volume support",
+                    "Latest Flash preview model"
                 ],
                 "best_for": "Rapid prototyping, quick iterations",
                 "emoji": "⚡"

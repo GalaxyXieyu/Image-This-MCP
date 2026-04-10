@@ -8,7 +8,7 @@ This repository contains a production-ready **Nano Banana MCP Server** - an AI-p
 
 ### ⭐ NEW: Nano Banana Pro Integration
 
-The server now supports **Gemini 3 Pro Image** (Google's latest and most advanced image generation model) alongside the existing Gemini 2.5 Flash Image model:
+The server now supports **Gemini 3 Pro Image** (Google's latest and most advanced image generation model) alongside **Gemini 3.1 Flash Image Preview** as the default fast model:
 
 **Key Capabilities**:
 - 🏆 **4K Resolution**: Up to 3840px professional-grade outputs
@@ -120,7 +120,7 @@ The codebase follows a **layered architecture** with clear separation of concern
 - `gcp_project_id` & `gcp_region`: For Vertex AI auth
 
 **Model Tier Enum** (`ModelTier`):
-- `FLASH`: Gemini 2.5 Flash Image (fast, 1024px)
+- `FLASH`: Gemini 3.1 Flash Image Preview (fast, 1024px)
 - `PRO`: Gemini 3 Pro Image (quality, 4K)
 - `AUTO`: Intelligent automatic selection (default)
 

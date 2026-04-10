@@ -27,7 +27,7 @@ class GeminiProvider(BaseImageProvider):
     Gemini/Nano Banana image generation provider.
 
     Supports:
-    - Gemini 2.5 Flash Image (speed-optimized, 1024px)
+    - Gemini 3.1 Flash Image Preview (speed-optimized, 1024px)
     - Gemini 3 Pro Image (quality-optimized, up to 4K)
     - Image editing with natural language
     - Multi-image conditioning

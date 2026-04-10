@@ -7,7 +7,7 @@ A production-ready **Model Context Protocol (MCP)** server that provides AI-powe
 Now supporting multiple image generation providers:
 
 ### 🏆 **Gemini (Nano Banana)**
-- **Flash Model**: Fast generation (1024px) for rapid prototyping
+- **Flash Model**: Gemini 3.1 Flash Image Preview by default for fast generation (1024px)
 - **Pro Model**: 4K quality up to 3840px with Google Search grounding
 - **Smart Selection**: Automatically chooses optimal model based on prompt
 - **Advanced Features**: Text rendering, reference images, aspect ratio control
@@ -21,7 +21,7 @@ Now supporting multiple image generation providers:
 ## ✨ Features
 
 - 🎨 **Multi-Provider Support**: Choose between Gemini and Jimeng AI, or auto-select
-- ⚡ **Gemini 2.5 Flash Image**: Fast generation (1024px) for rapid prototyping
+- ⚡ **Gemini 3.1 Flash Image Preview**: Default fast model (1024px) for rapid prototyping
 - 🏆 **Gemini 3 Pro Image**: High-quality up to 4K with Google Search grounding
 - 🤖 **Smart Model Selection**: Automatically chooses optimal model based on your prompt
 - 🌏 **Jimeng AI Integration**: Chinese-optimized image generation with Volcengine
@@ -425,7 +425,7 @@ Nano Banana supports two Gemini models with intelligent automatic selection:
 - **Best for**: Production assets, marketing materials, professional photography, high-fidelity outputs, images requiring text, factual accuracy
 - **Cost**: Higher per image (premium quality)
 
-### ⚡ Flash Model (Gemini 2.5 Flash Image)
+### ⚡ Flash Model (Gemini 3.1 Flash Image Preview)
 **Fast, reliable model for rapid iteration**
 
 - **Speed**: Very fast (2-3 seconds)
@@ -436,7 +436,7 @@ Nano Banana supports two Gemini models with intelligent automatic selection:
 
 ### 🤖 Automatic Selection (Recommended)
 
-By default, the server uses **AUTO** mode which intelligently analyzes your prompt and requirements:
+By default, direct calls use the **Flash** tier. You can still choose `auto` to let the server analyze your prompt and requirements:
 
 **Pro Model Selected When**:
 - Quality keywords detected: "4K", "professional", "production", "high-res", "HD"

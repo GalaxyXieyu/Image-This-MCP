@@ -18,7 +18,7 @@
   "server": {
     "name": "nanobanana-mcp-server",
     "version": "0.1.0",
-    "description": "AI-powered image generation using Gemini 2.5 Flash Image",
+    "description": "AI-powered image generation using Gemini 3.1 Flash Image Preview",
     "entrypoint": "nanobanana_mcp_server.server:create_app",
     "dependencies": [
       "fastmcp>=2.11.0",

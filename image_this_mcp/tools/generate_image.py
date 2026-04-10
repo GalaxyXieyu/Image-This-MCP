@@ -76,9 +76,9 @@ def register_generate_image_tool(server: FastMCP):
             Optional[str],
             Field(
                 description="Model tier: 'flash' (speed, 1024px), 'pro' (quality, up to 4K), or 'auto' (smart selection). "
-                "Default: 'pro' - prefer Gemini 3 Pro for quality."
+                "Default: 'flash' - use Gemini 3.1 Flash Image Preview for faster, cleaner iteration."
             ),
-        ] = "pro",
+        ] = "flash",
         resolution: Annotated[
             Optional[str],
             Field(
