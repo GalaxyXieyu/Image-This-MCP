@@ -4,6 +4,7 @@ import logging
 from typing import Optional, Union, Tuple
 
 from ..config.settings import ModelSelectionConfig, ModelTier
+from ..models import ModelRegistry
 from .image_service import ImageService
 from .pro_image_service import ProImageService
 
@@ -185,12 +186,33 @@ class ModelSelector:
         """
         Get information about a specific model tier.
 
+        Queries the ModelRegistry first; falls back to hard-coded defaults
+        if no matching gemini model is registered.
+
         Args:
             tier: Model tier to query
 
         Returns:
             Dictionary with model information
         """
+        # Try to find a gemini model matching the requested tier in the registry
+        candidates = ModelRegistry.filter(provider="gemini")
+        for model in candidates:
+            if model.tier.value == tier.value:
+                return {
+                    "tier": model.tier.value,
+                    "name": model.name,
+                    "model_id": model.id,
+                    "max_resolution": f"{model.max_resolution}px",
+                    "features": [
+                        cap for cap, enabled in model.capabilities.__dict__.items()
+                        if enabled
+                    ],
+                    "best_for": model.best_for or "General use",
+                    "emoji": model.emoji or "🤖",
+                }
+
+        # Fallback to hard-coded defaults
         if tier == ModelTier.PRO:
             return {
                 "tier": "pro",

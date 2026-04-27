@@ -335,11 +335,11 @@ class GeminiProvider(BaseImageProvider):
             return False
 
     def _get_capabilities(self) -> Dict[str, Any]:
-        """Get Gemini provider capabilities."""
-        from ..config.settings import ProImageConfig, FlashImageConfig
+        """Get Gemini provider capabilities from the ModelRegistry."""
+        from ...models import ModelRegistry
 
-        is_pro = isinstance(self.config, ProImageConfig)
-        is_flash = isinstance(self.config, FlashImageConfig)
+        model_id = getattr(self.config, "model_id", None) or getattr(self.config, "model_name", None)
+        info = ModelRegistry.get(model_id) if model_id else None
 
         capabilities = {
             "max_images_per_request": self.config.max_images_per_request,
@@ -350,20 +350,35 @@ class GeminiProvider(BaseImageProvider):
             "model_name": self.config.model_name,
         }
 
-        if is_pro:
+        if info:
             capabilities.update({
-                "max_resolution": "3840",  # 4K
-                "supports_thinking": True,
-                "supports_grounding": True,
-                "supports_media_resolution": True,
-                "model_tier": "pro",
+                "max_resolution": str(info.max_resolution),
+                "supports_thinking": info.capabilities.thinking,
+                "supports_grounding": info.capabilities.grounding,
+                "supports_media_resolution": info.capabilities.media_resolution_control,
+                "supports_text_rendering": info.capabilities.text_rendering,
+                "supports_search_grounding": info.capabilities.search_grounding,
+                "supports_high_resolution": info.capabilities.high_resolution,
+                "supports_system_instruction": info.capabilities.system_instruction,
+                "model_tier": info.tier.value,
             })
-        elif is_flash:
-            capabilities.update({
-                "max_resolution": "1024",
-                "supports_thinking": False,
-                "supports_grounding": False,
-                "model_tier": "flash",
-            })
+        else:
+            # Legacy fallback based on model name heuristic
+            name_lower = self.config.model_name.lower()
+            if "pro" in name_lower:
+                capabilities.update({
+                    "max_resolution": "3840",
+                    "supports_thinking": True,
+                    "supports_grounding": True,
+                    "supports_media_resolution": True,
+                    "model_tier": "pro",
+                })
+            else:
+                capabilities.update({
+                    "max_resolution": "1024",
+                    "supports_thinking": False,
+                    "supports_grounding": False,
+                    "model_tier": "flash",
+                })
 
         return capabilities

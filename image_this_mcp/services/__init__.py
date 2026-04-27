@@ -11,6 +11,7 @@ from ..config.settings import (
     ProImageConfig,
     ServerConfig,
 )
+from ..models import register_default_models
 from .enhanced_image_service import EnhancedImageService
 from .file_image_service import FileImageService
 from .file_service import FileService
@@ -74,6 +75,9 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _gemini_client, _files_api_service, _image_database_service, gemini_config, out_dir
     )
     _maintenance_service = MaintenanceService(_files_api_service, _image_database_service, out_dir)
+
+    # Initialize model registry with built-in defaults
+    register_default_models()
 
     # Initialize multi-model support services
     flash_config = FlashImageConfig()

@@ -29,6 +29,20 @@ def load_env() -> None:
 from ..core.exceptions import ADCConfigurationError
 from .constants import AUTH_ERROR_MESSAGES
 
+# Lazy import of models registry to avoid circular imports at module level
+_ModelRegistry = None
+_ModelInfo = None
+
+
+def _get_registry():
+    """Lazy-load ModelRegistry to avoid circular imports."""
+    global _ModelRegistry, _ModelInfo
+    if _ModelRegistry is None:
+        from ..models import ModelRegistry, ModelInfo
+        _ModelRegistry = ModelRegistry
+        _ModelInfo = ModelInfo
+    return _ModelRegistry, _ModelInfo
+
 
 class ModelTier(str, Enum):
     """Model selection options."""
@@ -96,11 +110,11 @@ class ServerConfig:
         if auth_method == AuthMethod.API_KEY:
             if not api_key:
                 raise ValueError(AUTH_ERROR_MESSAGES["api_key_required"])
-        
+
         elif auth_method == AuthMethod.VERTEX_AI:
             if not gcp_project:
                 raise ADCConfigurationError(AUTH_ERROR_MESSAGES["vertex_ai_project_required"])
-        
+
         else:  # AUTO
             if not api_key:
                 if not gcp_project:
@@ -137,26 +151,72 @@ class ServerConfig:
 @dataclass
 class BaseModelConfig:
     """Shared base configuration for all models."""
+    model_id: str = ""                         # Reference into ModelRegistry
+    model_name: str = ""                       # API-facing model name
     max_images_per_request: int = 4
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB
     default_image_format: str = "png"
     request_timeout: int = 60  # seconds
 
+    def __post_init__(self):
+        """Resolve model_name from registry if model_id is set."""
+        if self.model_id and not self.model_name:
+            Registry, _ = _get_registry()
+            info = Registry.get(self.model_id)
+            if info:
+                self.model_name = info.model_name
+                # Also sync other fields from registry if they are still defaults
+                if self.max_images_per_request == 4 and info.max_images_per_request != 4:
+                    self.max_images_per_request = info.max_images_per_request
+                if self.request_timeout == 60 and info.request_timeout != 60:
+                    self.request_timeout = info.request_timeout
+
+    @classmethod
+    def from_registry(cls, model_id: str) -> "BaseModelConfig":
+        """Create a config by looking up a model in the registry."""
+        Registry, ModelInfo = _get_registry()
+        info = Registry.get(model_id)
+        if not info:
+            raise ValueError(f"Model '{model_id}' not found in registry. "
+                           f"Available: {Registry.list_ids()}")
+        return cls(
+            model_id=info.id,
+            model_name=info.model_name,
+            max_images_per_request=info.max_images_per_request,
+            max_inline_image_size=info.max_inline_image_size,
+            default_image_format=info.default_image_format,
+            request_timeout=info.request_timeout,
+        )
+
 
 @dataclass
 class FlashImageConfig(BaseModelConfig):
-    """Gemini 3.1 Flash Image Preview configuration (speed-optimized)."""
-    model_name: str = "gemini-3.1-flash-image-preview"
+    """Gemini Flash model configuration (speed-optimized).
+
+    model_name is no longer hard-coded; it is resolved from ModelRegistry
+    when model_id is provided (defaults to the gemini flash default).
+    """
+    model_id: str = "gemini-3.1-flash-image-preview"
     max_resolution: int = 1024
     supports_thinking: bool = False
     supports_grounding: bool = False
     supports_media_resolution: bool = False
 
+    def __post_init__(self):
+        super().__post_init__()
+        # Back-compat: if model_name is still empty, use model_id
+        if not self.model_name:
+            self.model_name = self.model_id
+
 
 @dataclass
 class ProImageConfig(BaseModelConfig):
-    """Gemini 3 Pro Image configuration (quality-optimized)."""
-    model_name: str = "gemini-3-pro-image-preview"
+    """Gemini Pro model configuration (quality-optimized).
+
+    model_name is no longer hard-coded; it is resolved from ModelRegistry
+    when model_id is provided (defaults to the gemini pro default).
+    """
+    model_id: str = "gemini-3-pro-image-preview"
     max_resolution: int = 3840  # 4K
     default_resolution: str = "high"  # low/medium/high
     default_thinking_level: ThinkingLevel = ThinkingLevel.HIGH
@@ -167,11 +227,18 @@ class ProImageConfig(BaseModelConfig):
     enable_search_grounding: bool = True
     request_timeout: int = 90  # Pro model needs more time for 4K
 
+    def __post_init__(self):
+        super().__post_init__()
+        # Back-compat: if model_name is still empty, use model_id
+        if not self.model_name:
+            self.model_name = self.model_id
+
 
 @dataclass
 class ModelSelectionConfig:
     """Configuration for intelligent model selection."""
     default_tier: ModelTier = ModelTier.FLASH
+    default_model_id: str = ""  # Optional: force a specific model id
     auto_quality_keywords: List[str] = field(default_factory=lambda: [
         "4k", "high quality", "professional", "production",
         "high-res", "high resolution", "detailed", "sharp", "crisp",
@@ -193,12 +260,18 @@ class ModelSelectionConfig:
         except ValueError:
             default_tier = ModelTier.AUTO
 
-        return cls(default_tier=default_tier)
+        return cls(
+            default_tier=default_tier,
+            default_model_id=os.getenv("NANOBANANA_MODEL_ID", ""),
+        )
 
 
 @dataclass
 class GeminiConfig:
-    """Legacy Gemini API configuration (backward compatibility)."""
+    """Legacy Gemini API configuration (backward compatibility).
+
+    Use BaseModelConfig.from_registry(model_id) for dynamic model selection.
+    """
     model_name: str = "gemini-3.1-flash-image-preview"
     max_images_per_request: int = 4
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB

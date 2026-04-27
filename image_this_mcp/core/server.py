@@ -37,11 +37,13 @@ class NanoBananaMCP:
         from ..tools.upload_file import register_upload_file_tool
         from ..tools.output_stats import register_output_stats_tool
         from ..tools.maintenance import register_maintenance_tool
+        from ..tools.list_models import register_list_models_tool
 
         register_generate_image_tool(self.server)
         register_upload_file_tool(self.server)
         register_output_stats_tool(self.server)
         register_maintenance_tool(self.server)
+        register_list_models_tool(self.server)
 
     def _register_resources(self):
         """Register all resources with the server."""
