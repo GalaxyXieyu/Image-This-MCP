@@ -41,12 +41,7 @@ Now supporting multiple image generation providers:
 
 ### Installation
 
-**Option 1: From MCP Registry (Recommended)**
-This server is available in the [Model Context Protocol Registry](https://registry.modelcontextprotocol.io/?q=nanobanana). Search for "nanobanana" or use the MCP name below with your MCP client.
-
-mcp-name: `io.github.zhongweili/nanobanana-mcp-server`
-
-**Option 2: From GitHub (Latest Development Version)**
+**Option 1: From GitHub (Recommended)**
 
 Install directly from GitHub using `uv` (recommended):
 
@@ -58,29 +53,31 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install git+https://github.com/GalaxyXieyu/Image-This-MCP.git
 
 # Verify installation
-nanobanana-mcp-server --help
+command -v image-this-mcp
 
 # Manage tools
 uv tool list
-uv tool uninstall nanobanana-mcp-server
+uv tool uninstall image-this-mcp
 ```
 
 Run without installing (uvx):
 
 ```bash
-uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git nanobanana-mcp-server --help
+uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git image-this-mcp
 ```
 
-**Option 3: Using Published Package (uvx)**
+**Option 2: Local Editable Install (Development)**
 
 ```bash
-uvx nanobanana-mcp-server@latest
+git clone https://github.com/GalaxyXieyu/Image-This-MCP.git
+cd Image-This-MCP
+uv pip install -e .
 ```
 
-**Option 4: Using pip**
+**Option 3: Using pip**
 
 ```bash
-pip install nanobanana-mcp-server
+pip install git+https://github.com/GalaxyXieyu/Image-This-MCP.git
 ```
 
 ## 🔧 Configuration
@@ -92,6 +89,8 @@ Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
 1. **API Key** (`api_key`): Uses `GEMINI_API_KEY`. Best for local development and simple deployments.
 2. **Vertex AI ADC** (`vertex_ai`): Uses Google Cloud Application Default Credentials. Best for production on Google Cloud (Cloud Run, GKE, GCE).
 3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries Vertex AI.
+
+Note: `NANOBANANA_*` environment variables are historical compatibility names. The current package and CLI entrypoint are `image-this-mcp`.
 
 #### 1. API Key Authentication (Default)
 Set `GEMINI_API_KEY` environment variable.
@@ -112,7 +111,7 @@ Add to `~/.openclaw/openclaw.json`:
   "plugins": {
     "enabled": true,
     "entries": {
-      "image-this-jimeng45": {
+      "img-generator": {
         "enabled": true,
         "config": {
           "apiKey": "<YOUR_ARK_API_KEY>",
@@ -127,7 +126,7 @@ Add to `~/.openclaw/openclaw.json`:
     }
   },
   "tools": {
-    "allow": ["image-this-jimeng45"]
+    "allow": ["img-generator"]
   }
 }
 ```
@@ -159,9 +158,9 @@ export BANANA_API_BASE_URL="https://your-banana-api-endpoint.com/v1"
 ```json
 {
   "mcpServers": {
-    "nanobanana": {
+    "image-this": {
       "command": "uvx",
-      "args": ["nanobanana-mcp-server@latest"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-third-party-api-key",
         "GEMINI_API_BASE_URL": "https://your-banana-api-endpoint.com/v1"
@@ -214,9 +213,9 @@ export JIMENG_SECRET_KEY=your_secret_key_here
 ```json
 {
   "mcpServers": {
-    "nanobanana": {
+    "image-this": {
       "command": "uvx",
-      "args": ["nanobanana-mcp-server@latest"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "IMAGE_PROVIDER": "jimeng",
         "JIMENG_ACCESS_KEY": "your-access-key",
@@ -235,16 +234,16 @@ export JIMENG_SECRET_KEY=your_secret_key_here
 
 ### Claude Desktop
 
-#### Option 1: Using Published Server (Recommended)
+#### Option 1: Using GitHub Directly (Recommended)
 
 Add to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "nanobanana": {
+    "image-this": {
       "command": "uvx",
-      "args": ["nanobanana-mcp-server@latest"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
       }
@@ -260,8 +259,8 @@ If you installed from GitHub using `uv tool install`, use the installed command 
 ```json
 {
   "mcpServers": {
-    "nanobanana": {
-      "command": "nanobanana-mcp-server",
+    "image-this": {
+      "command": "image-this-mcp",
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
       }
@@ -277,15 +276,15 @@ If you are running from source code, point to your local installation:
 ```json
 {
   "mcpServers": {
-    "nanobanana-local": {
+    "image-this-local": {
       "command": "uv",
       "args": [
         "run",
         "python",
         "-m",
-        "nanobanana_mcp_server.server"
+        "image_this_mcp.server"
       ],
-      "cwd": "/absolute/path/to/nanobanana-mcp-server",
+      "cwd": "/absolute/path/to/Image-This-MCP",
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
       }
@@ -295,16 +294,16 @@ If you are running from source code, point to your local installation:
 ```
 
 
-#### Option 3: Using Vertex AI (ADC)
+#### Option 4: Using Vertex AI (ADC)
 
 To authenticate with Google Cloud Application Default Credentials (instead of an API Key):
 
 ```json
 {
   "mcpServers": {
-    "nanobanana-adc": {
+    "image-this-adc": {
       "command": "uvx",
-      "args": ["nanobanana-mcp-server@latest"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "NANOBANANA_AUTH_METHOD": "vertex_ai",
         "GCP_PROJECT_ID": "your-project-id",
@@ -330,9 +329,9 @@ Install and configure in VS Code:
 4. Configure:
    ```json
    {
-     "name": "nanobanana",
+     "name": "image-this",
      "command": "uvx",
-     "args": ["nanobanana-mcp-server@latest"],
+     "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
      "env": {
        "GEMINI_API_KEY": "your-gemini-api-key-here"
      }
@@ -346,9 +345,9 @@ Add to Cursor's MCP configuration:
 ```json
 {
   "mcpServers": {
-    "nanobanana": {
+    "image-this": {
       "command": "uvx",
-      "args": ["nanobanana-mcp-server@latest"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
       }
@@ -365,9 +364,9 @@ Add to your `config.json`:
 {
   "mcpServers": [
     {
-      "name": "nanobanana",
+      "name": "image-this",
       "command": "uvx",
-      "args": ["nanobanana-mcp-server@latest"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
       }
@@ -383,8 +382,8 @@ Configure in Open WebUI settings:
 ```json
 {
   "mcp_servers": {
-    "nanobanana": {
-      "command": ["uvx", "nanobanana-mcp-server@latest"],
+    "image-this": {
+      "command": ["uvx", "--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
       }
@@ -400,10 +399,10 @@ Configure in Open WebUI settings:
 export GEMINI_API_KEY="your-gemini-api-key-here"
 
 # Run server in stdio mode
-uvx nanobanana-mcp-server@latest
+uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git image-this-mcp
 
 # Or with pip installation
-python -m nanobanana_mcp_server.server
+python -m image_this_mcp.server
 ```
 
 ## 🤖 Model Selection
@@ -558,7 +557,7 @@ GCP_REGION=us-central1
 NANOBANANA_MODEL=pro  # Options: flash, pro, auto (default: pro)
 
 # Optional
-IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images
+IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/image-this
 LOG_LEVEL=INFO                             # DEBUG, INFO, WARNING, ERROR
 LOG_FORMAT=standard                        # standard, json, detailed
 ```
@@ -574,12 +573,12 @@ LOG_FORMAT=standard                        # standard, json, detailed
 
 **"Server failed to start"**
 
-- Ensure you're using the latest version: `uvx nanobanana-mcp-server@latest`
+- Ensure you're using the latest GitHub version: `uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git image-this-mcp`
 - Check that your client supports MCP (Claude Desktop 0.10.0+)
 
 **"Permission denied" errors**
 
-- The server creates images in `~/nanobanana-images` by default
+- The server creates images in `~/image-this` by default
 - Ensure write permissions to your home directory
 
 ### Development Setup
@@ -589,7 +588,7 @@ For local development:
 ```bash
 # Clone repository
 git clone https://github.com/GalaxyXieyu/Image-This-MCP.git
-cd nanobanana-mcp-server
+cd Image-This-MCP
 
 # Install with uv
 uv sync
@@ -598,7 +597,7 @@ uv sync
 export GEMINI_API_KEY=your-api-key-here
 
 # Run locally
-uv run python -m nanobanana_mcp_server.server
+uv run python -m image_this_mcp.server
 ```
 
 ## 📄 License

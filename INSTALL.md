@@ -41,7 +41,7 @@ pip install -e .
 
 ```bash
 # 直接运行，无需安装
-uvx git+https://github.com/GalaxyXieyu/Image-This-MCP.git
+uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git image-this-mcp
 ```
 
 ## 配置第三方 Banana API
@@ -67,7 +67,7 @@ export GEMINI_API_BASE_URL="https://yunwu.ai"
   "mcpServers": {
     "image-this": {
       "command": "uvx",
-      "args": ["git+https://github.com/GalaxyXieyu/Image-This-MCP.git"],
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
       "env": {
         "GEMINI_API_KEY": "your-api-key",
         "GEMINI_API_BASE_URL": "https://yunwu.ai"
@@ -85,7 +85,7 @@ export GEMINI_API_BASE_URL="https://yunwu.ai"
 {
   "mcpServers": {
     "image-this": {
-      "command": "nanobanana-mcp-server",
+      "command": "image-this-mcp",
       "env": {
         "GEMINI_API_KEY": "your-api-key",
         "GEMINI_API_BASE_URL": "https://yunwu.ai"
@@ -101,10 +101,7 @@ export GEMINI_API_BASE_URL="https://yunwu.ai"
 
 ```bash
 # 检查命令是否可用
-nanobanana-mcp-server --help
-
-# 或
-nanobanana-mcp --help
+command -v image-this-mcp
 ```
 
 ## 快速开始
@@ -122,7 +119,7 @@ nanobanana-mcp --help
 
 3. **运行**：
    ```bash
-   nanobanana-mcp-server
+   image-this-mcp
    ```
 
 ## 故障排除
@@ -132,7 +129,7 @@ nanobanana-mcp --help
 **解决方案**：
 - 确保 Python 环境已激活
 - 检查 PATH 环境变量是否包含 Python 的 bin 目录
-- 尝试使用完整路径：`python -m nanobanana_mcp_server.server`
+- 尝试使用完整路径：`python -m image_this_mcp.server`
 
 ### 问题：模块未找到
 
@@ -160,4 +157,3 @@ cd Image-This-MCP
 git pull
 uv pip install -e .
 ```
-

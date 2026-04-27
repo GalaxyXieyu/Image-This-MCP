@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.GalaxyXieyu/image-this-mcp",
-  "description": "AI image generation with Gemini 3 Pro (4K) and 2.5 Flash. Smart model selection.",
+  "description": "Multi-provider AI image generation with Gemini and Jimeng. Smart model selection and stdio MCP transport.",
   "repository": {
     "url": "https://github.com/GalaxyXieyu/Image-This-MCP",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "0.4.0",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
-      "identifier": "nanobanana-mcp-server",
-      "version": "0.2.0",
+      "identifier": "image-this-mcp",
+      "version": "0.4.0",
       "transport": {
         "type": "stdio"
       }

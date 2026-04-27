@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "nanobanana-mcp-server": {
+    "image-this-mcp": {
       "command": "uv",
       "args": [
         "run",
         "python",
         "-m",
-        "nanobanana_mcp_server.server"
+        "image_this_mcp.server"
       ],
       "cwd": ".",
       "env": {
@@ -16,13 +16,13 @@
     }
   },
   "server": {
-    "name": "nanobanana-mcp-server",
-    "version": "0.1.0",
-    "description": "AI-powered image generation using Gemini 3.1 Flash Image Preview",
-    "entrypoint": "nanobanana_mcp_server.server:create_app",
+    "name": "image-this-mcp",
+    "version": "0.4.0",
+    "description": "Multi-provider MCP server for AI image generation with Gemini and Jimeng",
+    "entrypoint": "image_this_mcp.server:create_app",
     "dependencies": [
       "fastmcp>=2.11.0",
-      "google-genai>=0.3.0",
+      "google-genai>=1.41.0",
       "pillow>=10.4.0",
       "python-dotenv>=1.0.1",
       "pydantic>=2.0.0"
@@ -49,6 +49,31 @@
       "BANANA_API_BASE_URL": {
         "required": false,
         "description": "Alternative name for custom API base URL"
+      },
+      "IMAGE_PROVIDER": {
+        "required": false,
+        "default": "gemini",
+        "description": "Default image provider (gemini or jimeng)"
+      },
+      "JIMENG_ACCESS_KEY": {
+        "required": false,
+        "description": "Volcengine Jimeng access key"
+      },
+      "JIMENG_SECRET_KEY": {
+        "required": false,
+        "description": "Volcengine Jimeng secret key"
+      },
+      "ARK_API_KEY": {
+        "required": false,
+        "description": "Ark API key for Jimeng 4.5 / Seedream 4.5 integration"
+      },
+      "SUPERBED_TOKEN": {
+        "required": false,
+        "description": "Optional Superbed token for uploading generated images"
+      },
+      "IMAGE_OUTPUT_DIR": {
+        "required": false,
+        "description": "Directory for generated image output (default: ~/image-this)"
       },
       "LOG_LEVEL": {
         "required": false,
