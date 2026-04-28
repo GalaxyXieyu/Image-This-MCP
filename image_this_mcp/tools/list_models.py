@@ -68,12 +68,18 @@ def register_list_models_tool(server: FastMCP):
             f"list_models request: provider={provider}, tier={tier}, capability={capability}"
         )
 
-        # Query the registry
-        models = ModelRegistry.filter(
-            provider=provider,
-            tier=tier,
-            capability=capability,
-        )
+        normalized_provider = provider
+        if provider == "jimeng":
+            models = [
+                *ModelRegistry.filter(provider="jimeng", tier=tier, capability=capability),
+                *ModelRegistry.filter(provider="jimeng45", tier=tier, capability=capability),
+            ]
+        else:
+            models = ModelRegistry.filter(
+                provider=provider,
+                tier=tier,
+                capability=capability,
+            )
 
         if not models:
             summary = "No models match the requested filters."
@@ -91,6 +97,10 @@ def register_list_models_tool(server: FastMCP):
             )
 
         model_list = [m.to_dict() for m in models]
+        for item in model_list:
+            if item.get("provider") == "jimeng45":
+                item["provider"] = "jimeng"
+                item["provider_family"] = "jimeng"
 
         # Build text summary
         lines = [f"📋 Registered Models ({len(model_list)} total)\n"]
@@ -114,26 +124,31 @@ def register_list_models_tool(server: FastMCP):
 
         if include_defaults:
             lines.append("🔧 Provider Defaults:")
+            display_defaults = {}
             for prov, model_id in ModelRegistry._provider_defaults.items():
+                display_key = "jimeng" if prov == "jimeng45" else prov
+                display_defaults.setdefault(display_key, model_id)
+            for prov, model_id in display_defaults.items():
                 lines.append(f"   {prov}: {model_id}")
             lines.append("")
 
         full_summary = "\n".join(lines)
 
+        display_defaults = {}
+        if include_defaults:
+            for prov, model_id in ModelRegistry._provider_defaults.items():
+                display_key = "jimeng" if prov == "jimeng45" else prov
+                display_defaults.setdefault(display_key, model_id)
+
         structured_content = {
             "models": model_list,
             "count": len(model_list),
             "filters": {
-                "provider": provider,
+                "provider": normalized_provider,
                 "tier": tier,
                 "capability": capability,
             },
-            "provider_defaults": {
-                prov: model_id
-                for prov, model_id in ModelRegistry._provider_defaults.items()
-            }
-            if include_defaults
-            else {},
+            "provider_defaults": display_defaults if include_defaults else {},
         }
 
         return ToolResult(

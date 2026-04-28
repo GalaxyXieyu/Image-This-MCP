@@ -21,6 +21,7 @@ from .file_service import FileService
 from .files_api_service import FilesAPIService
 from .gemini_client import GeminiClient
 from .image_database_service import ImageDatabaseService
+from .image_job_service import ImageJobService
 from .image_storage_service import ImageStorageService
 from .maintenance_service import MaintenanceService
 from .model_selector import ModelSelector
@@ -40,6 +41,7 @@ _image_storage_service: Optional[ImageStorageService] = None
 _maintenance_service: Optional[MaintenanceService] = None
 _artifact_service: Optional[ArtifactService] = None
 _request_limiter: Optional[RequestLimiter] = None
+_image_job_service: Optional[ImageJobService] = None
 
 # Multi-model support services
 _flash_gemini_client: Optional[GeminiClient] = None
@@ -65,7 +67,8 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _pro_image_service, \
         _model_selector, \
         _artifact_service, \
-        _request_limiter
+        _request_limiter, \
+        _image_job_service
 
     minio_config = MinioConfig.from_env()
     _artifact_service = ArtifactService(minio_config) if minio_config.validate_credentials() else None
@@ -84,6 +87,7 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     # Initialize enhanced services for workflows.md implementation
     out_dir = server_config.image_output_dir
     _image_database_service = ImageDatabaseService(db_path=os.path.join(out_dir, "images.db"))
+    _image_job_service = ImageJobService(db_path=os.path.join(out_dir, "image_jobs.db"))
     # Use a subdirectory within the configured output directory for temp images
     temp_images_dir = os.path.join(out_dir, "temp_images")
     _image_storage_service = ImageStorageService(gemini_config, temp_images_dir)
@@ -244,6 +248,13 @@ def get_request_limiter() -> RequestLimiter:
     if _request_limiter is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _request_limiter
+
+
+def get_image_job_service() -> ImageJobService:
+    """Get the async image job service."""
+    if _image_job_service is None:
+        raise RuntimeError("Services not initialized. Call initialize_services() first.")
+    return _image_job_service
 
 
 # Multi-provider support functions

@@ -21,6 +21,8 @@ def handle_jimeng_request(
     aspect_ratio: Optional[str],
     output_dir: Optional[str],
     detected_mode: str,
+    provider_name: str = "jimeng",
+    model: Optional[str] = None,
 ) -> Tuple[List[MCPImage], List[dict]]:
     """
     Handle a Jimeng provider generation or edit request.
@@ -33,9 +35,9 @@ def handle_jimeng_request(
             "Jimeng provider does not support Files API file_id inputs"
         )
 
-    provider_instance = services.get_provider("jimeng")
+    provider_instance = services.get_provider(provider_name)
     if not provider_instance:
-        raise ValidationError("Provider 'jimeng' not initialized")
+        raise ValidationError(f"Provider '{provider_name}' not initialized")
 
     thumbnail_images: List[MCPImage] = []
     metadata: List[dict] = []
@@ -67,7 +69,7 @@ def handle_jimeng_request(
         metadata = [
             {
                 "provider": "jimeng",
-                "model": "jimeng_t2i_v40",
+                "model": model or "jimeng_t2i_v40",
                 "instruction": prompt,
                 "edit_index": i + 1,
                 "mime_type": "image/png",
@@ -90,6 +92,7 @@ def handle_jimeng_request(
             n=n,
             negative_prompt=negative_prompt,
             aspect_ratio=aspect_ratio,
+            model=model,
         )
 
         for i, img in enumerate(thumbnail_images):

@@ -184,7 +184,7 @@ class Jimeng45Provider(BaseImageProvider):
 
                 # Metadata
                 metadata = {
-                    "provider": "jimeng45",
+                    "provider": "jimeng",
                     "model": response.get("model", self.config.model),
                     "prompt": prompt,
                     "size": item.get("size", size or self.config.default_size),

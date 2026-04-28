@@ -20,6 +20,7 @@ from ...config.constants import MAX_INPUT_IMAGES
 from ...config.settings import ModelTier
 from ...core.exceptions import ValidationError
 from ... import services
+from ...models import ModelRegistry
 
 from .gemini_handler import handle_gemini_request
 from .jimeng_handler import handle_jimeng_request
@@ -128,6 +129,13 @@ def register_generate_image_tool(server: FastMCP):
                 "Default: 'auto' - uses IMAGE_PROVIDER environment variable or defaults to 'gemini'."
             ),
         ] = "auto",
+        model: Annotated[
+            Optional[str],
+            Field(
+                description="Optional explicit model id from list_models. "
+                "Use this to pick a specific OpenAI or Jimeng-family model instead of only selecting by provider."
+            ),
+        ] = None,
         output_dir: Annotated[
             Optional[str],
             Field(
@@ -160,6 +168,8 @@ def register_generate_image_tool(server: FastMCP):
         logger = logging.getLogger(__name__)
 
         try:
+            selected_model_info = None
+
             # Resolve provider
             resolved_provider = provider or "auto"
             if resolved_provider == "auto":
@@ -173,6 +183,25 @@ def register_generate_image_tool(server: FastMCP):
             else:
                 logger.info(f"Using specified provider: {resolved_provider}")
             provider = resolved_provider
+
+            if model:
+                selected_model_info = ModelRegistry.get(model)
+                if not selected_model_info:
+                    raise ValidationError(f"Unknown model '{model}'. Use list_models to discover valid ids.")
+
+                model_provider = selected_model_info.provider
+                if provider == "jimeng" and model_provider in {"jimeng", "jimeng45"}:
+                    provider = "jimeng45" if model_provider == "jimeng45" else "jimeng"
+                elif provider in {"auto", model_provider}:
+                    provider = model_provider
+                elif provider == "openai" and model_provider == "openai":
+                    provider = "openai"
+                elif provider == "gemini" and model_provider == "gemini":
+                    provider = "gemini"
+                else:
+                    raise ValidationError(
+                        f"Model '{model}' belongs to provider '{model_provider}', not '{resolved_provider}'."
+                    )
 
             # Validate provider is available
             available = services.list_initialized_providers()
@@ -197,7 +226,7 @@ def register_generate_image_tool(server: FastMCP):
 
             logger.info(
                 f"Generate image request: prompt='{prompt[:50]}...', n={n}, "
-                f"paths={input_image_paths}, provider={provider}, model_tier={model_tier}, aspect_ratio={aspect_ratio}"
+                f"paths={input_image_paths}, provider={provider}, model={model}, model_tier={model_tier}, aspect_ratio={aspect_ratio}"
             )
 
             # Auto-detect mode based on inputs
@@ -262,6 +291,7 @@ def register_generate_image_tool(server: FastMCP):
                         aspect_ratio=aspect_ratio,
                         output_dir=output_dir,
                         detected_mode=detected_mode,
+                        model=model,
                     )
                 else:
                     thumbnail_images, metadata = handle_jimeng_request(
@@ -273,6 +303,8 @@ def register_generate_image_tool(server: FastMCP):
                         aspect_ratio=aspect_ratio,
                         output_dir=output_dir,
                         detected_mode=detected_mode,
+                        provider_name=provider,
+                        model=model,
                     )
 
             # Build response

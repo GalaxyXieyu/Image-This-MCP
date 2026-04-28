@@ -190,12 +190,18 @@ export IMAGE_PROVIDER=gemini
 
 # Use Jimeng AI
 export IMAGE_PROVIDER=jimeng
+
+# Use OpenAI-compatible images API
+export IMAGE_PROVIDER=openai
 ```
 
 You can also specify the provider per-request using the `provider` parameter in the `generate_image` tool:
 - `"gemini"` - Use Gemini (Nano Banana)
-- `"jimeng"` - Use Jimeng AI (Volcengine)
+- `"jimeng"` - Use the Jimeng model family (legacy Jimeng + Seedream/Jimeng 4.5 style models)
 - `"auto"` - Use default provider from environment
+
+To choose a specific model inside a provider family, use the optional `model` parameter with a model id returned by `list_models`.
+For example, `provider="jimeng"` with `model="doubao-seedream-4.5"` will route to the correct Jimeng-family backend automatically.
 
 ### Jimeng AI Configuration
 
@@ -231,6 +237,130 @@ export JIMENG_SECRET_KEY=your_secret_key_here
 - Supports reference images for image-to-image generation
 - Serial request queue to avoid rate limiting
 - Automatic retry with exponential backoff
+
+### OpenAI-Compatible Image Configuration
+
+To use OpenAI-compatible image providers such as OpenAI official API or ToAPIs:
+
+```bash
+export IMAGE_PROVIDER=openai
+export OPENAI_API_KEY="your-openai-compatible-key"
+export OPENAI_BASE_URL="https://your-openai-compatible-endpoint/v1"
+export OPENAI_MODEL="gpt-image-2"
+```
+
+Example:
+
+```json
+{
+  "mcpServers": {
+    "image-this": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/GalaxyXieyu/Image-This-MCP.git", "image-this-mcp"],
+      "env": {
+        "IMAGE_PROVIDER": "openai",
+        "OPENAI_API_KEY": "your-key",
+        "OPENAI_BASE_URL": "https://your-endpoint.example.com/v1",
+        "OPENAI_MODEL": "gpt-image-2"
+      }
+    }
+  }
+}
+```
+
+### Remote HTTP Deployment
+
+If you want many computers to share one MCP server, you can deploy this project once on a remote machine and connect clients to that HTTP MCP endpoint.
+
+Recommended phase-1 shape:
+- HTTP transport
+- Shared Bearer token
+- Synchronous image generation
+- MinIO/S3-compatible artifact publishing for final images
+
+Server environment example:
+
+```bash
+export FASTMCP_TRANSPORT=http
+export FASTMCP_HOST=0.0.0.0
+export FASTMCP_PORT=34128
+
+export MCP_AUTH_TOKEN="replace-with-a-random-token"
+export MCP_AUTH_HEADER=Authorization
+
+export IMAGE_PROVIDER=openai
+export OPENAI_API_KEY="your-openai-compatible-key"
+export OPENAI_BASE_URL="https://your-endpoint.example.com/v1"
+export OPENAI_MODEL="gpt-image-2"
+
+# Optional: Gemini provider
+export GEMINI_API_KEY="your-gemini-key"
+export GEMINI_API_BASE_URL="https://your-gemini-compatible-endpoint/v1"
+
+# Optional: Jimeng legacy provider
+export JIMENG_ACCESS_KEY="your-volcengine-access-key"
+export JIMENG_SECRET_KEY="your-volcengine-secret-key"
+
+# Optional: Jimeng Seedream / Ark provider
+export ARK_API_KEY="your-ark-api-key"
+export JIMENG45_API_KEY="your-ark-api-key"
+
+export MINIO_ENDPOINT="127.0.0.1:9000"
+export MINIO_ACCESS_KEY="your-minio-access-key"
+export MINIO_SECRET_KEY="your-minio-secret-key"
+export MINIO_BUCKET="image-this"
+export MINIO_SECURE=false
+export MINIO_PUBLIC_BASE_URL="http://your-server:9000"
+```
+
+Start the server:
+
+```bash
+uvx --from git+https://github.com/GalaxyXieyu/Image-This-MCP.git image-this-mcp
+```
+
+Remote MCP client example:
+
+```json
+{
+  "mcpServers": {
+    "image-this-remote": {
+      "url": "http://your-server:34128/mcp",
+      "headers": {
+        "Authorization": "Bearer replace-with-the-same-token"
+      }
+    }
+  }
+}
+```
+
+For a concrete Docker-based deployment example, see [docs/REMOTE_DEPLOYMENT.md](docs/REMOTE_DEPLOYMENT.md).
+
+### Async Remote Jobs
+
+For remote deployments with multiple clients, you can use the async job tools instead of waiting on a single long request:
+
+- `submit_image_job`
+- `get_image_job_status`
+- `get_image_job_result`
+- `list_image_jobs`
+
+Recommended flow:
+
+1. Submit a job with `submit_image_job`
+2. Poll with `get_image_job_status`
+3. Fetch final URLs and metadata with `get_image_job_result`
+
+This is especially useful when several machines share one remote MCP server.
+
+### Current Provider Scope
+
+Image generation providers currently supported by this repo:
+- Gemini
+- Jimeng model family
+- OpenAI-compatible image APIs
+
+`Moonshot` and `DeepLX` are not image generation providers in this server today, so they are not configurable here yet.
 
 ### Claude Desktop
 

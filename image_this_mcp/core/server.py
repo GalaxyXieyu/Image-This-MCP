@@ -44,8 +44,10 @@ class NanoBananaMCP:
         from ..tools.output_stats import register_output_stats_tool
         from ..tools.maintenance import register_maintenance_tool
         from ..tools.list_models import register_list_models_tool
+        from ..tools.image_jobs import register_image_job_tools
 
         register_generate_image_tool(self.server)
+        register_image_job_tools(self.server)
         register_upload_file_tool(self.server)
         register_output_stats_tool(self.server)
         register_maintenance_tool(self.server)

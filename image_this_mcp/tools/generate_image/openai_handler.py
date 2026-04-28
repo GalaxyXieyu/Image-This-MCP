@@ -20,6 +20,7 @@ def handle_openai_request(
     aspect_ratio: Optional[str],
     output_dir: Optional[str],
     detected_mode: str,
+    model: Optional[str] = None,
 ) -> Tuple[List[MCPImage], List[dict]]:
     """
     Handle an OpenAI provider generation request.
@@ -53,6 +54,7 @@ def handle_openai_request(
         n=n,
         negative_prompt=negative_prompt,
         aspect_ratio=aspect_ratio,
+        model=model,
     )
 
     for i, img in enumerate(thumbnail_images):
