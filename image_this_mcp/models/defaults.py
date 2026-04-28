@@ -79,8 +79,8 @@ def register_default_models() -> None:
     # Jimeng (legacy Volcengine visual API)
     Registry.register(
         ModelInfo(
-            id="jimeng-visual",
-            name="Jimeng AI (Volcengine)",
+            id="jimeng",
+            name="Jimeng AI",
             provider="jimeng",
             tier=ModelTier.STANDARD,
             model_name="jimeng",
@@ -209,6 +209,6 @@ def register_default_models() -> None:
 
     # Set provider defaults
     Registry.set_provider_default("gemini", "gemini-3.1-flash-image-preview")
-    Registry.set_provider_default("jimeng", "jimeng-visual")
+    Registry.set_provider_default("jimeng", "jimeng")
     Registry.set_provider_default("jimeng45", "doubao-seedream-4.5")
     Registry.set_provider_default("openai", "gpt-image-2")

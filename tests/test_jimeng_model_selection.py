@@ -26,6 +26,6 @@ def test_list_models_merges_jimeng_family():
     data = result.structured_content
 
     ids = {m["id"] for m in data["models"]}
-    assert "jimeng-visual" in ids
+    assert "jimeng" in ids
     assert "doubao-seedream-4.5" in ids
     assert "jimeng45" not in data["provider_defaults"]
