@@ -44,6 +44,9 @@ class OpenAIProvider(BaseImageProvider):
         "3:2": "1792x1024",
     }
 
+    # Model ID patterns considered image-generation capable on OpenAI-compatible endpoints
+    IMAGE_MODEL_PATTERNS = ("dall-e", "gpt-image")
+
     def __init__(self, config: OpenAIConfig):
         self.config = config
         self.logger = logging.getLogger(__name__)
@@ -56,6 +59,85 @@ class OpenAIProvider(BaseImageProvider):
             timeout = httpx.Timeout(self.config.request_timeout, connect=10.0)
             self._client = httpx.Client(timeout=timeout)
         return self._client
+
+    def discover_models(self) -> List[str]:
+        """
+        Query /v1/models and auto-register image-generation models.
+
+        Returns:
+            List of discovered model IDs.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {self.config.api_key}"}
+            url = f"{self.config.base_url.rstrip('/')}/v1/models"
+            resp = self.client.get(url, headers=headers, timeout=15.0)
+            resp.raise_for_status()
+            data = resp.json()
+            models = data.get("data", [])
+
+            discovered: List[str] = []
+            for m in models:
+                model_id = m.get("id", "")
+                if any(p in model_id for p in self.IMAGE_MODEL_PATTERNS):
+                    discovered.append(model_id)
+
+            if discovered:
+                self.logger.info(f"OpenAI discovered image models: {discovered}")
+            else:
+                self.logger.warning(
+                    "OpenAI /v1/models returned no recognised image models; "
+                    f"falling back to default {self.config.default_model}"
+                )
+                discovered = [self.config.default_model]
+
+            return discovered
+
+        except Exception as e:
+            self.logger.warning(f"OpenAI model discovery failed: {e}; using default model")
+            return [self.config.default_model]
+
+    def register_discovered_models(self) -> None:
+        """Register discovered models into the global ModelRegistry."""
+        from ...models import ModelRegistry, ModelInfo, ModelCapability, ModelTier
+
+        model_ids = self.discover_models()
+        for idx, model_id in enumerate(model_ids):
+            # Skip if already registered
+            if ModelRegistry.get(model_id):
+                continue
+
+            # Heuristic tier assignment
+            tier = ModelTier.PRO if "gpt-image" in model_id else ModelTier.STANDARD
+
+            ModelRegistry.register(
+                ModelInfo(
+                    id=model_id,
+                    name=model_id.replace("-", " ").title(),
+                    provider="openai",
+                    tier=tier,
+                    model_name=model_id,
+                    max_resolution=1792,
+                    default_resolution="1024x1024",
+                    supported_aspect_ratios=list(self.ASPECT_RATIO_MAP.keys()),
+                    max_images_per_request=1,
+                    request_timeout=self.config.request_timeout,
+                    capabilities=ModelCapability(
+                        editing=False,
+                        reference_images=False,
+                        aspect_ratio_control=True,
+                        high_resolution=True,
+                        text_rendering=True,
+                    ),
+                    description=f"OpenAI image model {model_id} (auto-discovered).",
+                    emoji="🖼️",
+                    best_for="Text-to-image generation via OpenAI Images API",
+                )
+            )
+            self.logger.info(f"Auto-registered OpenAI model: {model_id}")
+
+        # Ensure provider default points to first discovered model
+        if model_ids:
+            ModelRegistry.set_provider_default("openai", model_ids[0])
 
     def generate_images(
         self,

@@ -228,6 +228,10 @@ class ProviderFactory:
                 cls._providers["openai"] = openai_provider
                 logger.info("✓ OpenAI provider initialized")
 
+                # Auto-discover and register available image models
+                if hasattr(openai_provider, "register_discovered_models"):
+                    openai_provider.register_discovered_models()
+
             except Exception as e:
                 logger.warning(f"✗ OpenAI provider initialization failed: {e}")
                 logger.warning("  OpenAI features will be unavailable")
