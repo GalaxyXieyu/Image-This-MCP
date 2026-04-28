@@ -262,7 +262,7 @@ class Jimeng45Provider(BaseImageProvider):
     def discover_models(self) -> List[Dict[str, Any]]:
         """Discover currently accessible Seedream image-generation models from Ark."""
         headers = {"Authorization": f"Bearer {self.config.api_key}"}
-        url = "https://ark.cn-beijing.volces.com/api/v3/models"
+        url = "https://ark.cn-guangzhou.volces.com/api/v3/models"
         response = self.client.get(url, headers=headers, timeout=30.0)
         response.raise_for_status()
         data = response.json()

@@ -201,7 +201,7 @@ You can also specify the provider per-request using the `provider` parameter in 
 - `"auto"` - Use default provider from environment
 
 To choose a specific model inside a provider family, use the optional `model` parameter with a model id returned by `list_models`.
-For example, `provider="jimeng"` with `model="doubao-seedream-4.5"` will route to the correct Jimeng-family backend automatically.
+For example, `provider="jimeng"` with `model="doubao-seedream-4-5-251128"` will route to the correct Jimeng-family backend automatically.
 
 ### Jimeng AI Configuration
 
@@ -306,6 +306,7 @@ export LAS_API_KEY="your-las-image-api-key"
 # Optional fallbacks for older deployments:
 export JIMENG45_API_KEY="your-las-image-api-key"
 export ARK_API_KEY="your-legacy-ark-key"
+export JIMENG45_API_ENDPOINT="https://operator.las.cn-guangzhou.volces.com/api/v1/images/generations"
 
 export MINIO_ENDPOINT="127.0.0.1:9000"
 export MINIO_ACCESS_KEY="your-minio-access-key"
