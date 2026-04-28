@@ -33,6 +33,10 @@ class GeminiClient:
     def client(self) -> genai.Client:
         """Lazy initialization of Gemini client."""
         if self._client is None:
+            if self.config.auth_method is None:
+                raise AuthenticationError(
+                    "Gemini authentication is not configured for this server instance"
+                )
             if self.config.auth_method == AuthMethod.API_KEY:
                 if not self.config.gemini_api_key:
                     raise AuthenticationError("API key is required for API_KEY auth method")

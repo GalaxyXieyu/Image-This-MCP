@@ -19,6 +19,7 @@ from .settings import (
     GeminiConfig,
     JimengConfig,
     Jimeng45Config,
+    OpenAIConfig,
     # Functions
     load_env,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "GeminiConfig",
     "JimengConfig",
     "Jimeng45Config",
+    "OpenAIConfig",
     # Functions
     "load_env",
 ]

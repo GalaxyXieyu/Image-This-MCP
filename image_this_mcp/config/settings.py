@@ -83,7 +83,7 @@ class ServerConfig:
     mask_error_details: bool = False
     max_concurrent_requests: int = 10
     image_output_dir: str = ""
-    auth_method: AuthMethod = AuthMethod.AUTO
+    auth_method: Optional[AuthMethod] = AuthMethod.AUTO
     gcp_project_id: Optional[str] = None
     gcp_region: str = "us-central1"
     api_base_url: Optional[str] = None  # Custom API base URL for third-party Banana API
@@ -105,6 +105,11 @@ class ServerConfig:
         gcp_project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
         gcp_region = os.getenv("GCP_REGION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
         api_base_url = os.getenv("GEMINI_API_BASE_URL") or os.getenv("BANANA_API_BASE_URL")
+        default_provider = os.getenv("IMAGE_PROVIDER", "gemini").lower()
+        has_openai = bool(os.getenv("OPENAI_API_KEY") or os.getenv("GPT"))
+        has_jimeng = bool(os.getenv("JIMENG_ACCESS_KEY") and os.getenv("JIMENG_SECRET_KEY"))
+        has_jimeng45 = bool(os.getenv("JIMENG45_API_KEY"))
+        has_non_gemini_provider = has_openai or has_jimeng or has_jimeng45
 
         # Validation logic
         if auth_method == AuthMethod.API_KEY:
@@ -116,12 +121,14 @@ class ServerConfig:
                 raise ADCConfigurationError(AUTH_ERROR_MESSAGES["vertex_ai_project_required"])
 
         else:  # AUTO
-            if not api_key:
-                if not gcp_project:
-                    raise ValueError(AUTH_ERROR_MESSAGES["no_auth_configured"])
-                auth_method = AuthMethod.VERTEX_AI
-            else:
+            if api_key:
                 auth_method = AuthMethod.API_KEY
+            elif gcp_project:
+                auth_method = AuthMethod.VERTEX_AI
+            elif has_non_gemini_provider:
+                auth_method = None
+            else:
+                raise ValueError(AUTH_ERROR_MESSAGES["no_auth_configured"])
 
         # Handle image output directory
         output_dir = os.getenv("IMAGE_OUTPUT_DIR", "").strip()
@@ -144,7 +151,7 @@ class ServerConfig:
             mask_error_details=os.getenv("FASTMCP_MASK_ERRORS", "false").lower() == "true",
             image_output_dir=str(output_path),
             api_base_url=api_base_url,
-            default_provider=os.getenv("IMAGE_PROVIDER", "gemini"),
+            default_provider=default_provider,
         )
 
 
@@ -390,10 +397,14 @@ class OpenAIConfig:
     default_size: str = "1024x1024"
     default_quality: str = "standard"  # "standard" or "hd"
     default_style: str = ""  # "vivid" or "natural" (DALL-E 3 only)
+    default_resolution: str = "1K"
     request_timeout: int = 120  # seconds
     max_retries: int = 3
     retry_delay: int = 5
     max_images_per_request: int = 1
+    poll_interval: int = 3
+    max_poll_seconds: int = 180
+    user_agent: str = "image-this-mcp/0.4.0"
 
     @classmethod
     def from_env(cls) -> "OpenAIConfig":
@@ -407,9 +418,13 @@ class OpenAIConfig:
             default_size=os.getenv("OPENAI_SIZE", "1024x1024"),
             default_quality=os.getenv("OPENAI_QUALITY", "standard"),
             default_style=os.getenv("OPENAI_STYLE", ""),
+            default_resolution=os.getenv("OPENAI_RESOLUTION", "1K"),
             request_timeout=int(os.getenv("OPENAI_TIMEOUT", "120")),
             max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
             retry_delay=int(os.getenv("OPENAI_RETRY_DELAY", "5")),
+            poll_interval=int(os.getenv("OPENAI_POLL_INTERVAL", "3")),
+            max_poll_seconds=int(os.getenv("OPENAI_MAX_POLL_SECONDS", "180")),
+            user_agent=os.getenv("OPENAI_USER_AGENT", "image-this-mcp/0.4.0"),
         )
 
     def validate_credentials(self) -> bool:

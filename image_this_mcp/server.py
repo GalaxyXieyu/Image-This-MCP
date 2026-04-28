@@ -38,7 +38,10 @@ def create_app():
         gemini_config = GeminiConfig()
 
         logger.info(f"Server transport: {server_config.transport}")
-        logger.info(f"Gemini model: {gemini_config.model_name}")
+        if server_config.auth_method is None:
+            logger.info("Gemini auth: disabled (using non-Gemini provider configuration)")
+        else:
+            logger.info(f"Gemini model: {gemini_config.model_name}")
 
         # Initialize services first
         services.initialize_services(server_config, gemini_config)
@@ -79,7 +82,10 @@ def create_wrapper_app() -> NanoBananaMCP:
         gemini_config = GeminiConfig()
 
         logger.info(f"Server transport: {server_config.transport}")
-        logger.info(f"Gemini model: {gemini_config.model_name}")
+        if server_config.auth_method is None:
+            logger.info("Gemini auth: disabled (using non-Gemini provider configuration)")
+        else:
+            logger.info(f"Gemini model: {gemini_config.model_name}")
 
         # Initialize services first
         services.initialize_services(server_config, gemini_config)
