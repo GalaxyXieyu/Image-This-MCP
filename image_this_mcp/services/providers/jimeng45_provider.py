@@ -259,6 +259,72 @@ class Jimeng45Provider(BaseImageProvider):
         """Validate Jimeng 4.5 configuration."""
         return self.config.validate_credentials()
 
+    def discover_models(self) -> List[Dict[str, Any]]:
+        """Discover currently accessible Seedream image-generation models from Ark."""
+        headers = {"Authorization": f"Bearer {self.config.api_key}"}
+        url = "https://ark.cn-beijing.volces.com/api/v3/models"
+        response = self.client.get(url, headers=headers, timeout=30.0)
+        response.raise_for_status()
+        data = response.json()
+        discovered = []
+        for item in data.get("data", []):
+            domain = str(item.get("domain", "")).lower()
+            model_id = str(item.get("id", ""))
+            task_types = [str(x) for x in item.get("task_type", [])]
+            if "seedream" not in model_id:
+                continue
+            if domain != "imagegeneration" and not any(t in {"TextToImage", "ImageToImage"} for t in task_types):
+                continue
+            discovered.append(item)
+        return discovered
+
+    def register_discovered_models(self) -> List[str]:
+        """Register accessible Seedream models into the global registry."""
+        from ...models import ModelCapability, ModelInfo, ModelRegistry, ModelTier
+
+        model_ids: List[str] = []
+        try:
+            discovered = self.discover_models()
+        except Exception as exc:
+            self.logger.warning(f"Jimeng Seedream model discovery failed: {exc}")
+            return model_ids
+
+        for item in discovered:
+            model_id = item["id"]
+            model_ids.append(model_id)
+            if ModelRegistry.get(model_id):
+                continue
+            pretty_name = item.get("name", model_id).replace("-", " ").title()
+            ModelRegistry.register(
+                ModelInfo(
+                    id=model_id,
+                    name=pretty_name,
+                    provider="jimeng45",
+                    tier=ModelTier.STANDARD,
+                    model_name=model_id,
+                    max_resolution=2304,
+                    default_resolution=self.config.default_size,
+                    supported_aspect_ratios=["1:1", "3:4", "2:3", "4:3", "16:9", "9:16"],
+                    max_images_per_request=1,
+                    request_timeout=self.config.request_timeout,
+                    capabilities=ModelCapability(
+                        editing=False,
+                        reference_images=True,
+                        aspect_ratio_control=True,
+                        watermark_optional=True,
+                        high_resolution=True,
+                    ),
+                    description=f"ByteDance Seedream image model discovered from Ark: {model_id}",
+                    emoji="🎨",
+                    best_for="High-quality Chinese aesthetics and Seedream image generation",
+                )
+            )
+
+        if model_ids:
+            preferred = next((m for m in model_ids if "4-5" in m), model_ids[0])
+            ModelRegistry.set_provider_default("jimeng45", preferred)
+        return model_ids
+
     def _map_aspect_ratio_to_size(self, aspect_ratio: str) -> str:
         """
         Map aspect ratio string to size string.

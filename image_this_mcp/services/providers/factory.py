@@ -212,6 +212,11 @@ class ProviderFactory:
                 cls._providers["jimeng45"] = jimeng45_provider
                 logger.info("✓ Jimeng 4.5 provider initialized")
 
+                if hasattr(jimeng45_provider, "register_discovered_models"):
+                    discovered = jimeng45_provider.register_discovered_models()
+                    if discovered:
+                        logger.info(f"✓ Jimeng Seedream discovered models: {', '.join(discovered)}")
+
             except Exception as e:
                 logger.warning(f"✗ Jimeng 4.5 provider initialization failed: {e}")
                 logger.warning("  Jimeng 4.5 features will be unavailable")

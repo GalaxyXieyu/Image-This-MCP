@@ -27,5 +27,5 @@ def test_list_models_merges_jimeng_family():
 
     ids = {m["id"] for m in data["models"]}
     assert "jimeng" in ids
-    assert "doubao-seedream-4.5" in ids
+    assert "doubao-seedream-4-5-251128" in ids
     assert "jimeng45" not in data["provider_defaults"]

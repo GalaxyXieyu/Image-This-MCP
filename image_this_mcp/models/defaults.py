@@ -109,11 +109,11 @@ def register_default_models() -> None:
     # Jimeng 4.5 (Seedream via Ark API)
     Registry.register(
         ModelInfo(
-            id="doubao-seedream-4.5",
+            id="doubao-seedream-4-5-251128",
             name="Jimeng 4.5 (Seedream)",
             provider="jimeng45",
             tier=ModelTier.STANDARD,
-            model_name="doubao-seedream-4.5",
+            model_name="doubao-seedream-4-5-251128",
             max_resolution=2304,
             default_resolution="1728x2304",
             supported_aspect_ratios=[
@@ -210,5 +210,5 @@ def register_default_models() -> None:
     # Set provider defaults
     Registry.set_provider_default("gemini", "gemini-3.1-flash-image-preview")
     Registry.set_provider_default("jimeng", "jimeng")
-    Registry.set_provider_default("jimeng45", "doubao-seedream-4.5")
+    Registry.set_provider_default("jimeng45", "doubao-seedream-4-5-251128")
     Registry.set_provider_default("openai", "gpt-image-2")
