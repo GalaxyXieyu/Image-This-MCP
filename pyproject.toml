@@ -1,6 +1,6 @@
 [project]
 name = "image-this-mcp"
-version = "0.4.0"
+version = "0.4.1"
 description = "Multi-provider MCP server for AI image generation (Gemini, Jimeng) with intelligent provider selection"
 authors = [
     { name = "zhongwei", email = "lizhongwei.nkcs@gmail.com" }
