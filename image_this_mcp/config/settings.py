@@ -335,7 +335,7 @@ class Jimeng45Config:
     """Jimeng 4.5 (Seedream 4.5 via Ark API) configuration."""
 
     api_key: Optional[str] = None
-    api_endpoint: str = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+    api_endpoint: str = "https://operator.las.cn-beijing.volces.com/api/v1/images/generations"
     model: str = "doubao-seedream-4.5"  # or custom endpoint ID like 'ep-xxxx'
     default_size: str = "1728x2304"  # 3:4 portrait ratio for Xiaohongshu
     response_format: str = "b64_json"  # 'b64_json' or 'url'
@@ -366,10 +366,10 @@ class Jimeng45Config:
         load_env()
 
         return cls(
-            api_key=os.getenv("JIMENG45_API_KEY") or os.getenv("ARK_API_KEY"),
+            api_key=os.getenv("LAS_API_KEY") or os.getenv("JIMENG45_API_KEY") or os.getenv("ARK_API_KEY"),
             api_endpoint=os.getenv(
                 "JIMENG45_API_ENDPOINT",
-                "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+                "https://operator.las.cn-beijing.volces.com/api/v1/images/generations"
             ),
             model=os.getenv("JIMENG45_MODEL", "doubao-seedream-4.5"),
             default_size=os.getenv("JIMENG45_SIZE", "1728x2304"),

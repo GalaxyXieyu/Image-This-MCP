@@ -302,8 +302,10 @@ export JIMENG_ACCESS_KEY="your-volcengine-access-key"
 export JIMENG_SECRET_KEY="your-volcengine-secret-key"
 
 # Optional: Jimeng Seedream / Ark provider
-export ARK_API_KEY="your-ark-api-key"
-export JIMENG45_API_KEY="your-ark-api-key"
+export LAS_API_KEY="your-las-image-api-key"
+# Optional fallbacks for older deployments:
+export JIMENG45_API_KEY="your-las-image-api-key"
+export ARK_API_KEY="your-legacy-ark-key"
 
 export MINIO_ENDPOINT="127.0.0.1:9000"
 export MINIO_ACCESS_KEY="your-minio-access-key"
