@@ -44,7 +44,7 @@ docker compose up -d --build
 5. Health check:
 
 ```bash
-curl http://38.76.197.25:39010/health
+curl http://38.76.197.25:34128/health
 ```
 
 6. MCP client example:
@@ -53,7 +53,7 @@ curl http://38.76.197.25:39010/health
 {
   "mcpServers": {
     "image-this-remote": {
-      "url": "http://38.76.197.25:39010/mcp",
+      "url": "http://38.76.197.25:34128/mcp",
       "headers": {
         "Authorization": "Bearer <MCP_AUTH_TOKEN>"
       }
