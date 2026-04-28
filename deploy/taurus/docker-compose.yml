@@ -7,10 +7,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "${FASTMCP_PORT:-39010}:${FASTMCP_PORT:-39010}"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    network_mode: host
     volumes:
       - image_this_output:/data/output
 
