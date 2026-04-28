@@ -13,6 +13,7 @@ from PIL import Image as PILImage
 import io
 
 from fastmcp.utilities.types import Image as MCPImage
+from .artifact_service import ArtifactService
 from .gemini_client import GeminiClient
 from ..utils.image_utils import validate_image_format
 from ..config.settings import GeminiConfig, ServerConfig
@@ -23,13 +24,18 @@ class FileImageService:
     """Service for image generation and saving to user-specified directory."""
 
     def __init__(
-        self, gemini_client: GeminiClient, gemini_config: GeminiConfig, server_config: ServerConfig
+        self,
+        gemini_client: GeminiClient,
+        gemini_config: GeminiConfig,
+        server_config: ServerConfig,
+        artifact_service: Optional[ArtifactService] = None,
     ):
         self.gemini_client = gemini_client
         self.gemini_config = gemini_config
         self.server_config = server_config
         self.output_dir = Path(server_config.image_output_dir)
         self.logger = logging.getLogger(__name__)
+        self.artifact_service = artifact_service
 
         # Thumbnail settings
         self.thumbnail_max_size = (256, 256)
@@ -101,6 +107,15 @@ class FileImageService:
         extension = mimetypes.guess_extension(mime_type) or f".{self.gemini_config.default_image_format}"
         return extension.lstrip(".")
 
+    def _attach_artifact_metadata(self, full_path: Path, mime_type: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Upload saved images to remote artifact storage when configured."""
+        if not self.artifact_service or not self.artifact_service.validate_config():
+            return metadata
+
+        published = self.artifact_service.publish_file(str(full_path), content_type=mime_type)
+        metadata.update(self.artifact_service.build_metadata(published))
+        return metadata
+
     def save_external_image(
         self,
         image_bytes: bytes,
@@ -151,6 +166,8 @@ class FileImageService:
 
         if metadata:
             file_metadata = {**metadata, **file_metadata}
+
+        file_metadata = self._attach_artifact_metadata(full_path, mime_type, file_metadata)
 
         self.logger.info(f"Saved external image to {full_path} ({len(image_bytes)} bytes)")
         return thumbnail_image, file_metadata
@@ -265,6 +282,11 @@ class FileImageService:
                             "image_index": j + 1,
                             "synthid_watermark": True,
                         }
+                        metadata = self._attach_artifact_metadata(
+                            full_path,
+                            metadata["mime_type"],
+                            metadata,
+                        )
                         file_metadata.append(metadata)
 
                         self.logger.info(f"Saved image to {full_path} ({len(image_bytes)} bytes)")
@@ -370,6 +392,11 @@ class FileImageService:
                         "edit_index": i + 1,
                         "synthid_watermark": True,
                     }
+                    metadata = self._attach_artifact_metadata(
+                        full_path,
+                        metadata["mime_type"],
+                        metadata,
+                    )
                     file_metadata.append(metadata)
 
                     self.logger.info(

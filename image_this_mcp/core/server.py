@@ -1,6 +1,11 @@
 from fastmcp import FastMCP
 import logging
+from starlette.middleware import Middleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+import uvicorn
 from ..config.settings import ServerConfig
+from .http_middleware import FixedTokenAuthMiddleware
 
 
 class NanoBananaMCP:
@@ -21,6 +26,7 @@ class NanoBananaMCP:
         self._register_tools()
         self._register_resources()
         self._register_prompts()
+        self._register_http_routes()
 
     def _get_server_instructions(self) -> str:
         """Get server description and instructions."""
@@ -65,9 +71,26 @@ class NanoBananaMCP:
         register_design_prompts(self.server)
         register_editing_prompts(self.server)
 
+    def _register_http_routes(self):
+        """Register custom HTTP routes for remote deployments."""
+
+        @self.server.custom_route("/health", methods=["GET"], include_in_schema=False)
+        async def health(_request: Request):
+            return JSONResponse({"ok": True, "server": self.config.server_name})
+
     def run(self):
         """Start the server."""
         if self.config.transport == "http":
-            self.server.run(transport="http", host=self.config.host, port=self.config.port)
+            middleware = []
+            if self.config.mcp_auth_token:
+                middleware.append(
+                    Middleware(
+                        FixedTokenAuthMiddleware,
+                        token=self.config.mcp_auth_token,
+                        header_name=self.config.mcp_auth_header,
+                    )
+                )
+            app = self.server.http_app(middleware=middleware, transport="http")
+            uvicorn.run(app, host=self.config.host, port=self.config.port)
         else:
             self.server.run()

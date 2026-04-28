@@ -8,6 +8,7 @@ Implements the complete workflow sequences:
 
 from typing import List, Optional, Tuple, Dict, Any
 from fastmcp.utilities.types import Image as MCPImage
+from .artifact_service import ArtifactService
 from .gemini_client import GeminiClient
 from .files_api_service import FilesAPIService
 from .image_database_service import ImageDatabaseService
@@ -42,6 +43,7 @@ class EnhancedImageService:
         db_service: ImageDatabaseService,
         config: GeminiConfig,
         out_dir: Optional[str] = None,
+        artifact_service: Optional[ArtifactService] = None,
     ):
         """
         Initialize enhanced image service.
@@ -59,6 +61,7 @@ class EnhancedImageService:
         self.config = config
         self.out_dir = out_dir or "output"
         self.logger = logging.getLogger(__name__)
+        self.artifact_service = artifact_service
 
         # Ensure output directory exists
         os.makedirs(self.out_dir, exist_ok=True)
@@ -425,6 +428,13 @@ class EnhancedImageService:
             "files_api": {"name": file_id, "uri": file_uri} if file_id else None,
         }
 
+        if self.artifact_service and self.artifact_service.validate_config():
+            published = self.artifact_service.publish_file(
+                full_path,
+                content_type=f"image/{self.config.default_image_format}",
+            )
+            metadata.update(self.artifact_service.build_metadata(published))
+
         return thumbnail_image, metadata
 
     def _process_edited_image(
@@ -518,5 +528,12 @@ class EnhancedImageService:
             "size_bytes": len(image_bytes),
             "files_api": {"name": new_file_id, "uri": new_file_uri} if new_file_id else None,
         }
+
+        if self.artifact_service and self.artifact_service.validate_config():
+            published = self.artifact_service.publish_file(
+                full_path,
+                content_type=f"image/{self.config.default_image_format}",
+            )
+            metadata.update(self.artifact_service.build_metadata(published))
 
         return thumbnail_image, metadata

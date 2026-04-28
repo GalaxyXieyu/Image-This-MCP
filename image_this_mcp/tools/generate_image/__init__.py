@@ -233,45 +233,47 @@ def register_generate_image_tool(server: FastMCP):
             metadata = []
             selected_tier = None
             model_info = None
+            request_limiter = services.get_request_limiter()
 
-            if provider == "gemini":
-                thumbnail_images, metadata, selected_tier, model_info = handle_gemini_request(
-                    prompt=prompt,
-                    n=n,
-                    negative_prompt=negative_prompt,
-                    system_instruction=system_instruction,
-                    input_image_paths=input_image_paths,  # type: ignore[arg-type]
-                    file_id=file_id,
-                    aspect_ratio=aspect_ratio,
-                    model_tier=model_tier,
-                    thinking_level=thinking_level,
-                    resolution=resolution,
-                    enable_grounding=enable_grounding,
-                    output_dir=output_dir,
-                    detected_mode=detected_mode,
-                )
-            elif provider == "openai":
-                thumbnail_images, metadata = handle_openai_request(
-                    prompt=prompt,
-                    n=n,
-                    negative_prompt=negative_prompt,
-                    input_image_paths=input_image_paths,  # type: ignore[arg-type]
-                    file_id=file_id,
-                    aspect_ratio=aspect_ratio,
-                    output_dir=output_dir,
-                    detected_mode=detected_mode,
-                )
-            else:
-                thumbnail_images, metadata = handle_jimeng_request(
-                    prompt=prompt,
-                    n=n,
-                    negative_prompt=negative_prompt,
-                    input_image_paths=input_image_paths,  # type: ignore[arg-type]
-                    file_id=file_id,
-                    aspect_ratio=aspect_ratio,
-                    output_dir=output_dir,
-                    detected_mode=detected_mode,
-                )
+            with request_limiter.limit(provider):
+                if provider == "gemini":
+                    thumbnail_images, metadata, selected_tier, model_info = handle_gemini_request(
+                        prompt=prompt,
+                        n=n,
+                        negative_prompt=negative_prompt,
+                        system_instruction=system_instruction,
+                        input_image_paths=input_image_paths,  # type: ignore[arg-type]
+                        file_id=file_id,
+                        aspect_ratio=aspect_ratio,
+                        model_tier=model_tier,
+                        thinking_level=thinking_level,
+                        resolution=resolution,
+                        enable_grounding=enable_grounding,
+                        output_dir=output_dir,
+                        detected_mode=detected_mode,
+                    )
+                elif provider == "openai":
+                    thumbnail_images, metadata = handle_openai_request(
+                        prompt=prompt,
+                        n=n,
+                        negative_prompt=negative_prompt,
+                        input_image_paths=input_image_paths,  # type: ignore[arg-type]
+                        file_id=file_id,
+                        aspect_ratio=aspect_ratio,
+                        output_dir=output_dir,
+                        detected_mode=detected_mode,
+                    )
+                else:
+                    thumbnail_images, metadata = handle_jimeng_request(
+                        prompt=prompt,
+                        n=n,
+                        negative_prompt=negative_prompt,
+                        input_image_paths=input_image_paths,  # type: ignore[arg-type]
+                        file_id=file_id,
+                        aspect_ratio=aspect_ratio,
+                        output_dir=output_dir,
+                        detected_mode=detected_mode,
+                    )
 
             # Build response
             if metadata:

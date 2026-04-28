@@ -7,11 +7,13 @@ from ..config.settings import (
     FlashImageConfig,
     GeminiConfig,
     JimengConfig,
+    MinioConfig,
     ModelSelectionConfig,
     OpenAIConfig,
     ProImageConfig,
     ServerConfig,
 )
+from .artifact_service import ArtifactService
 from ..models import register_default_models
 from .enhanced_image_service import EnhancedImageService
 from .file_image_service import FileImageService
@@ -24,6 +26,7 @@ from .maintenance_service import MaintenanceService
 from .model_selector import ModelSelector
 from .pro_image_service import ProImageService
 from .providers import ProviderFactory
+from .request_limiter import RequestLimiter
 
 # Global service instances (initialized by the server)
 _gemini_client: Optional[GeminiClient] = None
@@ -35,6 +38,8 @@ _files_api_service: Optional[FilesAPIService] = None
 _image_database_service: Optional[ImageDatabaseService] = None
 _image_storage_service: Optional[ImageStorageService] = None
 _maintenance_service: Optional[MaintenanceService] = None
+_artifact_service: Optional[ArtifactService] = None
+_request_limiter: Optional[RequestLimiter] = None
 
 # Multi-model support services
 _flash_gemini_client: Optional[GeminiClient] = None
@@ -58,11 +63,22 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _flash_gemini_client, \
         _pro_gemini_client, \
         _pro_image_service, \
-        _model_selector
+        _model_selector, \
+        _artifact_service, \
+        _request_limiter
+
+    minio_config = MinioConfig.from_env()
+    _artifact_service = ArtifactService(minio_config) if minio_config.validate_credentials() else None
+    _request_limiter = RequestLimiter(server_config)
 
     # Initialize core services (legacy compatibility)
     _gemini_client = GeminiClient(server_config, gemini_config)
-    _file_image_service = FileImageService(_gemini_client, gemini_config, server_config)
+    _file_image_service = FileImageService(
+        _gemini_client,
+        gemini_config,
+        server_config,
+        artifact_service=_artifact_service,
+    )
     _file_service = FileService(_gemini_client)
 
     # Initialize enhanced services for workflows.md implementation
@@ -73,7 +89,12 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     _image_storage_service = ImageStorageService(gemini_config, temp_images_dir)
     _files_api_service = FilesAPIService(_gemini_client, _image_database_service)
     _enhanced_image_service = EnhancedImageService(
-        _gemini_client, _files_api_service, _image_database_service, gemini_config, out_dir
+        _gemini_client,
+        _files_api_service,
+        _image_database_service,
+        gemini_config,
+        out_dir,
+        artifact_service=_artifact_service,
     )
     _maintenance_service = MaintenanceService(_files_api_service, _image_database_service, out_dir)
 
@@ -93,7 +114,8 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     _pro_image_service = ProImageService(
         _pro_gemini_client,
         pro_config,
-        _image_storage_service
+        _image_storage_service,
+        artifact_service=_artifact_service,
     )
 
     _pro_enhanced_image_service = EnhancedImageService(
@@ -102,6 +124,7 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _image_database_service,
         pro_config,
         out_dir,
+        artifact_service=_artifact_service,
     )
 
     # Create model selector
@@ -209,6 +232,18 @@ def get_model_selector() -> ModelSelector:
     if _model_selector is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _model_selector
+
+
+def get_artifact_service() -> Optional[ArtifactService]:
+    """Get the artifact publishing service if configured."""
+    return _artifact_service
+
+
+def get_request_limiter() -> RequestLimiter:
+    """Get the global request limiter."""
+    if _request_limiter is None:
+        raise RuntimeError("Services not initialized. Call initialize_services() first.")
+    return _request_limiter
 
 
 # Multi-provider support functions

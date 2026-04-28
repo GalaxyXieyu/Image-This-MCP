@@ -9,6 +9,7 @@ from fastmcp.utilities.types import Image as MCPImage
 from ..config.settings import MediaResolution, ProImageConfig, ThinkingLevel
 from ..core.progress_tracker import ProgressContext
 from ..utils.image_utils import validate_image_format
+from .artifact_service import ArtifactService
 from .gemini_client import GeminiClient
 from .image_storage_service import ImageStorageService
 
@@ -21,10 +22,12 @@ class ProImageService:
         gemini_client: GeminiClient,
         config: ProImageConfig,
         storage_service: Optional[ImageStorageService] = None,
+        artifact_service: Optional[ArtifactService] = None,
     ):
         self.gemini_client = gemini_client
         self.config = config
         self.storage_service = storage_service
+        self.artifact_service = artifact_service
         self.logger = logging.getLogger(__name__)
 
     def generate_images(
@@ -193,6 +196,12 @@ class ProImageService:
                                 "expires_at": stored_info.expires_at,
                                 "is_stored": True,
                             })
+                            if self.artifact_service and self.artifact_service.validate_config():
+                                published = self.artifact_service.publish_file(
+                                    stored_info.full_path,
+                                    content_type=metadata["mime_type"],
+                                )
+                                metadata.update(self.artifact_service.build_metadata(published))
 
                             all_metadata.append(metadata)
 
@@ -341,6 +350,12 @@ class ProImageService:
                             f"Edited image {i + 1} with Pro - stored as {stored_info.id} "
                             f"({stored_info.size_bytes} bytes)"
                         )
+                        if self.artifact_service and self.artifact_service.validate_config():
+                            published = self.artifact_service.publish_file(
+                                stored_info.full_path,
+                                content_type=f"image/{self.config.default_image_format}",
+                            )
+                            metadata.update(self.artifact_service.build_metadata(published))
                     else:
                         mcp_image = MCPImage(
                             data=image_bytes,

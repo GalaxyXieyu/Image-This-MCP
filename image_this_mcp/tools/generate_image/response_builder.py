@@ -61,6 +61,7 @@ def build_gemini_response(
         size_bytes = meta.get("size_bytes", 0)
         size_mb = round(size_bytes / (1024 * 1024), 1) if size_bytes else 0
         full_path = meta.get("full_path", "Unknown path")
+        artifact_url = meta.get("artifact_url")
         width = meta.get("width", "?")
         height = meta.get("height", "?")
 
@@ -76,6 +77,8 @@ def build_gemini_response(
             f"  {i}. `{full_path}`\n"
             f"     📏 {width}x{height} • 💾 {size_mb}MB{extra_info}"
         )
+        if artifact_url:
+            summary_lines.append(f"     🌐 {artifact_url}")
 
     summary_lines.append(
         "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
@@ -111,6 +114,11 @@ def build_gemini_response(
             m.get("full_path")
             for m in metadata
             if m and isinstance(m, dict) and m.get("full_path")
+        ],
+        "artifact_urls": [
+            m.get("artifact_url")
+            for m in metadata
+            if m and isinstance(m, dict) and m.get("artifact_url")
         ],
         "files_api_ids": [
             m.get("files_api", {}).get("name")
@@ -165,6 +173,7 @@ def build_jimeng_response(
         size_bytes = meta.get("size_bytes", 0)
         size_mb = round(size_bytes / (1024 * 1024), 1) if size_bytes else 0
         full_path = meta.get("full_path", "Unknown path")
+        artifact_url = meta.get("artifact_url")
         width = meta.get("width", "?")
         height = meta.get("height", "?")
 
@@ -172,6 +181,8 @@ def build_jimeng_response(
             f"  {i}. `{full_path}`\n"
             f"     📏 {width}x{height} • 💾 {size_mb}MB"
         )
+        if artifact_url:
+            summary_lines.append(f"     🌐 {artifact_url}")
 
     summary_lines.append(
         "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
@@ -207,6 +218,11 @@ def build_jimeng_response(
             m.get("full_path")
             for m in metadata
             if m and isinstance(m, dict) and m.get("full_path")
+        ],
+        "artifact_urls": [
+            m.get("artifact_url")
+            for m in metadata
+            if m and isinstance(m, dict) and m.get("artifact_url")
         ],
         "files_api_ids": [],
         "parent_relationships": [],
@@ -251,6 +267,7 @@ def build_openai_response(
         size_bytes = meta.get("size_bytes", 0)
         size_mb = round(size_bytes / (1024 * 1024), 1) if size_bytes else 0
         full_path = meta.get("full_path", "Unknown path")
+        artifact_url = meta.get("artifact_url")
         width = meta.get("width", "?")
         height = meta.get("height", "?")
         quality = meta.get("quality", "")
@@ -266,6 +283,8 @@ def build_openai_response(
             f"  {i}. `{full_path}`\n"
             f"     📏 {width}x{height} • 💾 {size_mb}MB{extra}"
         )
+        if artifact_url:
+            summary_lines.append(f"     🌐 {artifact_url}")
 
     summary_lines.append(
         "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
@@ -301,6 +320,11 @@ def build_openai_response(
             m.get("full_path")
             for m in metadata
             if m and isinstance(m, dict) and m.get("full_path")
+        ],
+        "artifact_urls": [
+            m.get("artifact_url")
+            for m in metadata
+            if m and isinstance(m, dict) and m.get("artifact_url")
         ],
         "files_api_ids": [],
         "parent_relationships": [],

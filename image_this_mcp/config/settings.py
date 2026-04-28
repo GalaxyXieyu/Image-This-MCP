@@ -88,6 +88,12 @@ class ServerConfig:
     gcp_region: str = "us-central1"
     api_base_url: Optional[str] = None  # Custom API base URL for third-party Banana API
     default_provider: str = "gemini"  # Default image provider: 'gemini' or 'jimeng'
+    mcp_auth_token: Optional[str] = None
+    mcp_auth_header: str = "Authorization"
+    global_max_concurrent_requests: int = 10
+    gemini_max_concurrent_requests: int = 2
+    openai_max_concurrent_requests: int = 2
+    queue_wait_timeout_seconds: int = 600
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -152,6 +158,12 @@ class ServerConfig:
             image_output_dir=str(output_path),
             api_base_url=api_base_url,
             default_provider=default_provider,
+            mcp_auth_token=os.getenv("MCP_AUTH_TOKEN"),
+            mcp_auth_header=os.getenv("MCP_AUTH_HEADER", "Authorization"),
+            global_max_concurrent_requests=int(os.getenv("MAX_CONCURRENT_REQUESTS", "10")),
+            gemini_max_concurrent_requests=int(os.getenv("GEMINI_MAX_CONCURRENT_REQUESTS", "2")),
+            openai_max_concurrent_requests=int(os.getenv("OPENAI_MAX_CONCURRENT_REQUESTS", "2")),
+            queue_wait_timeout_seconds=int(os.getenv("QUEUE_WAIT_TIMEOUT_SECONDS", "600")),
         )
 
 
@@ -430,3 +442,42 @@ class OpenAIConfig:
     def validate_credentials(self) -> bool:
         """Validate that required credentials are present."""
         return bool(self.api_key and self.base_url)
+
+
+@dataclass
+class MinioConfig:
+    """Remote artifact publishing configuration for MinIO/S3-compatible storage."""
+
+    endpoint: Optional[str] = None
+    access_key: Optional[str] = None
+    secret_key: Optional[str] = None
+    bucket: Optional[str] = None
+    secure: bool = True
+    public_base_url: Optional[str] = None
+    region: Optional[str] = None
+    key_prefix: str = "image-this"
+    presign_expiry_seconds: int = 86400
+
+    @classmethod
+    def from_env(cls) -> "MinioConfig":
+        """Load MinIO configuration from environment variables."""
+        load_env()
+
+        endpoint = os.getenv("MINIO_ENDPOINT")
+        public_base_url = os.getenv("MINIO_PUBLIC_BASE_URL")
+
+        return cls(
+            endpoint=endpoint,
+            access_key=os.getenv("MINIO_ACCESS_KEY"),
+            secret_key=os.getenv("MINIO_SECRET_KEY"),
+            bucket=os.getenv("MINIO_BUCKET"),
+            secure=os.getenv("MINIO_SECURE", "true").lower() == "true",
+            public_base_url=public_base_url,
+            region=os.getenv("MINIO_REGION"),
+            key_prefix=os.getenv("MINIO_KEY_PREFIX", "image-this"),
+            presign_expiry_seconds=int(os.getenv("MINIO_PRESIGN_EXPIRY_SECONDS", "86400")),
+        )
+
+    def validate_credentials(self) -> bool:
+        """Validate that required storage credentials are present."""
+        return bool(self.endpoint and self.access_key and self.secret_key and self.bucket)
