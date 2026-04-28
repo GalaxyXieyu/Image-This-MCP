@@ -338,10 +338,10 @@ class Jimeng45Provider(BaseImageProvider):
         ratio_map = {
             "3:4": "1728x2304",   # Xiaohongshu optimized
             "4:3": "2304x1728",
-            "1:1": "1024x1024",
+            "1:1": "1920x1920",
             "16:9": "1920x1080",
             "9:16": "1080x1920",
-            "2:3": "1024x1536",
+            "2:3": "1536x2304",
         }
         return ratio_map.get(aspect_ratio, self.config.default_size)
 

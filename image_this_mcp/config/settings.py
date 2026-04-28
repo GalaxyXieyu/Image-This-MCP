@@ -336,7 +336,7 @@ class Jimeng45Config:
 
     api_key: Optional[str] = None
     api_endpoint: str = "https://operator.las.cn-beijing.volces.com/api/v1/images/generations"
-    model: str = "doubao-seedream-4.5"  # or custom endpoint ID like 'ep-xxxx'
+    model: str = "doubao-seedream-4-5-251128"  # or custom endpoint ID like 'ep-xxxx'
     default_size: str = "1728x2304"  # 3:4 portrait ratio for Xiaohongshu
     response_format: str = "b64_json"  # 'b64_json' or 'url'
     request_timeout: int = 120  # seconds
@@ -348,9 +348,9 @@ class Jimeng45Config:
     # Supported sizes (format: "WIDTHxHEIGHT")
     # Total pixels must be between [3686400, 16777216] for Jimeng 4.5
     SUPPORTED_SIZES = [
-        "1024x1024",  # 1:1
-        "1024x1365",  # 3:4
-        "1024x1536",  # 2:3
+        "1920x1920",  # 1:1
+        "1728x2304",  # 3:4
+        "1536x2304",  # 2:3
         "1728x2304",  # 3:4 (Xiaohongshu optimized)
         "1536x2048",  # 3:4
         "2048x2731",  # 3:4
@@ -371,7 +371,7 @@ class Jimeng45Config:
                 "JIMENG45_API_ENDPOINT",
                 "https://operator.las.cn-beijing.volces.com/api/v1/images/generations"
             ),
-            model=os.getenv("JIMENG45_MODEL", "doubao-seedream-4.5"),
+            model=os.getenv("JIMENG45_MODEL", "doubao-seedream-4-5-251128"),
             default_size=os.getenv("JIMENG45_SIZE", "1728x2304"),
             response_format=os.getenv("JIMENG45_RESPONSE_FORMAT", "b64_json"),
             request_timeout=int(os.getenv("JIMENG45_TIMEOUT", "120")),
