@@ -13,6 +13,7 @@ from .base import BaseImageProvider
 from .gemini_provider import GeminiProvider
 from .jimeng_provider import JimengProvider
 from .jimeng45_provider import Jimeng45Provider
+from .openai_provider import OpenAIProvider
 from .factory import ProviderFactory
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     "GeminiProvider",
     "JimengProvider",
     "Jimeng45Provider",
+    "OpenAIProvider",
     "ProviderFactory",
 ]

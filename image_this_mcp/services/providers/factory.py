@@ -12,7 +12,8 @@ from .base import BaseImageProvider
 from .gemini_provider import GeminiProvider
 from .jimeng_provider import JimengProvider
 from .jimeng45_provider import Jimeng45Provider
-from ...config.settings import ServerConfig, GeminiConfig, JimengConfig, Jimeng45Config
+from .openai_provider import OpenAIProvider
+from ...config.settings import ServerConfig, GeminiConfig, JimengConfig, Jimeng45Config, OpenAIConfig
 from ..gemini_client import GeminiClient
 from ..image_storage_service import ImageStorageService
 
@@ -35,6 +36,7 @@ class ProviderFactory:
         "gemini": GeminiProvider,
         "jimeng": JimengProvider,
         "jimeng45": Jimeng45Provider,
+        "openai": OpenAIProvider,
     }
     _storage_service: Optional[ImageStorageService] = None
 
@@ -150,7 +152,8 @@ class ProviderFactory:
         server_config: ServerConfig,
         gemini_config: Optional[GeminiConfig] = None,
         jimeng_config: Optional[JimengConfig] = None,
-        jimeng45_config: Optional[Jimeng45Config] = None
+        jimeng45_config: Optional[Jimeng45Config] = None,
+        openai_config: Optional[OpenAIConfig] = None
     ):
         """
         Initialize all available providers.
@@ -214,6 +217,22 @@ class ProviderFactory:
                 logger.warning("  Jimeng 4.5 features will be unavailable")
         elif jimeng45_config:
             logger.warning("✗ Jimeng 4.5 provider skipped: missing credentials")
+
+        # Initialize OpenAI provider
+        if openai_config and openai_config.validate_credentials():
+            try:
+                openai_provider = cls.create_provider(
+                    "openai",
+                    config=openai_config
+                )
+                cls._providers["openai"] = openai_provider
+                logger.info("✓ OpenAI provider initialized")
+
+            except Exception as e:
+                logger.warning(f"✗ OpenAI provider initialization failed: {e}")
+                logger.warning("  OpenAI features will be unavailable")
+        elif openai_config:
+            logger.warning("✗ OpenAI provider skipped: missing credentials")
 
         # Summary
         initialized = list(cls._providers.keys())

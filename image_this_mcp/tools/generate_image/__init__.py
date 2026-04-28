@@ -23,7 +23,8 @@ from ... import services
 
 from .gemini_handler import handle_gemini_request
 from .jimeng_handler import handle_jimeng_request
-from .response_builder import build_gemini_response, build_jimeng_response, build_empty_response
+from .openai_handler import handle_openai_request
+from .response_builder import build_gemini_response, build_jimeng_response, build_openai_response, build_empty_response
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -31,7 +32,7 @@ def register_generate_image_tool(server: FastMCP):
 
     @server.tool(
         annotations={
-            "title": "Generate or edit images (Multi-Provider: Gemini, Jimeng)",
+            "title": "Generate or edit images (Multi-Provider: Gemini, Jimeng, OpenAI)",
             "readOnlyHint": True,
             "openWorldHint": True,
         }
@@ -119,10 +120,11 @@ def register_generate_image_tool(server: FastMCP):
             ),
         ] = None,
         provider: Annotated[
-            Literal["gemini", "jimeng", "auto"] | None,
+            Literal["gemini", "jimeng", "openai", "auto"] | None,
             Field(
                 description="Image generation provider: 'gemini' (Nano Banana - Flash/Pro models), "
-                "'jimeng' (Volcengine Jimeng - Chinese-optimized), or 'auto' (use default from config). "
+                "'jimeng' (Volcengine Jimeng - Chinese-optimized), "
+                "'openai' (DALL-E 3 / GPT Image 2), or 'auto' (use default from config). "
                 "Default: 'auto' - uses IMAGE_PROVIDER environment variable or defaults to 'gemini'."
             ),
         ] = "auto",
@@ -142,6 +144,7 @@ def register_generate_image_tool(server: FastMCP):
         **Multi-Provider Support**:
         - **gemini**: Nano Banana (Flash & Pro models, 4K support, Google Search grounding)
         - **jimeng**: Volcengine Jimeng (Chinese-optimized, 3:4 portrait default, serial queue)
+        - **openai**: OpenAI Images API (DALL-E 3 / GPT Image 2, photorealistic outputs)
         - **auto**: Automatically selects based on IMAGE_PROVIDER environment variable (default: gemini)
 
         Supports multiple input modes:
@@ -247,6 +250,17 @@ def register_generate_image_tool(server: FastMCP):
                     output_dir=output_dir,
                     detected_mode=detected_mode,
                 )
+            elif provider == "openai":
+                thumbnail_images, metadata = handle_openai_request(
+                    prompt=prompt,
+                    n=n,
+                    negative_prompt=negative_prompt,
+                    input_image_paths=input_image_paths,  # type: ignore[arg-type]
+                    file_id=file_id,
+                    aspect_ratio=aspect_ratio,
+                    output_dir=output_dir,
+                    detected_mode=detected_mode,
+                )
             else:
                 thumbnail_images, metadata = handle_jimeng_request(
                     prompt=prompt,
@@ -287,6 +301,16 @@ def register_generate_image_tool(server: FastMCP):
                         aspect_ratio=aspect_ratio,
                         prompt=prompt,
                         negative_prompt=negative_prompt,
+                        n=n,
+                    )
+                elif provider == "openai":
+                    return build_openai_response(
+                        thumbnail_images=thumbnail_images,
+                        metadata=metadata,
+                        detected_mode=detected_mode,
+                        input_image_paths=input_image_paths,  # type: ignore[arg-type]
+                        aspect_ratio=aspect_ratio,
+                        prompt=prompt,
                         n=n,
                     )
                 else:

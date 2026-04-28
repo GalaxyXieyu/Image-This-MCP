@@ -8,6 +8,7 @@ from ..config.settings import (
     GeminiConfig,
     JimengConfig,
     ModelSelectionConfig,
+    OpenAIConfig,
     ProImageConfig,
     ServerConfig,
 )
@@ -112,15 +113,17 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
 
     # Initialize multi-provider support
     jimeng_config = JimengConfig.from_env()
+    openai_config = OpenAIConfig.from_env()
 
     # Register storage service with factory
     ProviderFactory.set_storage_service(_image_storage_service)
 
-    # Initialize all providers (Gemini and Jimeng)
+    # Initialize all providers (Gemini, Jimeng, OpenAI)
     ProviderFactory.initialize_all_providers(
         server_config=server_config,
         gemini_config=flash_config,  # Use Flash config as default
-        jimeng_config=jimeng_config
+        jimeng_config=jimeng_config,
+        openai_config=openai_config,
     )
 
 

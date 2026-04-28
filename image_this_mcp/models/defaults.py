@@ -140,7 +140,75 @@ def register_default_models() -> None:
         )
     )
 
+    # OpenAI gpt-image-2
+    Registry.register(
+        ModelInfo(
+            id="gpt-image-2",
+            name="OpenAI GPT Image 2",
+            provider="openai",
+            tier=ModelTier.PRO,
+            model_name="gpt-image-2",
+            max_resolution=1792,
+            default_resolution="1024x1024",
+            supported_aspect_ratios=["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2"],
+            max_images_per_request=1,
+            request_timeout=120,
+            capabilities=ModelCapability(
+                editing=False,
+                reference_images=False,
+                aspect_ratio_control=True,
+                high_resolution=True,
+                text_rendering=True,
+            ),
+            description="OpenAI's latest image generation model (gpt-image-2). High-quality photorealistic outputs via OpenAI Images API.",
+            emoji="🖼️",
+            best_for="Photorealistic images, artistic illustrations, DALL-E quality outputs",
+            default_config={
+                "quality": "standard",
+                "size": "1024x1024",
+                "response_format": "b64_json",
+                "max_retries": 3,
+                "retry_delay": 5,
+            },
+        )
+    )
+
+    # OpenAI dall-e-3
+    Registry.register(
+        ModelInfo(
+            id="dall-e-3",
+            name="OpenAI DALL-E 3",
+            provider="openai",
+            tier=ModelTier.STANDARD,
+            model_name="dall-e-3",
+            max_resolution=1792,
+            default_resolution="1024x1024",
+            supported_aspect_ratios=["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2"],
+            max_images_per_request=1,
+            request_timeout=120,
+            capabilities=ModelCapability(
+                editing=False,
+                reference_images=False,
+                aspect_ratio_control=True,
+                high_resolution=True,
+                text_rendering=True,
+            ),
+            description="OpenAI DALL-E 3. Reliable text-to-image generation with style and quality controls.",
+            emoji="🎨",
+            best_for="Creative illustrations, conceptual art, reliable text rendering",
+            default_config={
+                "quality": "standard",
+                "style": "vivid",
+                "size": "1024x1024",
+                "response_format": "b64_json",
+                "max_retries": 3,
+                "retry_delay": 5,
+            },
+        )
+    )
+
     # Set provider defaults
     Registry.set_provider_default("gemini", "gemini-3.1-flash-image-preview")
     Registry.set_provider_default("jimeng", "jimeng-visual")
     Registry.set_provider_default("jimeng45", "doubao-seedream-4.5")
+    Registry.set_provider_default("openai", "gpt-image-2")

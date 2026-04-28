@@ -378,3 +378,40 @@ class Jimeng45Config:
             return 3686400 <= total_pixels <= 16777216
         except (ValueError, AttributeError):
             return False
+
+
+@dataclass
+class OpenAIConfig:
+    """OpenAI image generation configuration (DALL-E 3, gpt-image-2, etc.)."""
+
+    api_key: Optional[str] = None
+    base_url: str = "https://api.openai.com"
+    default_model: str = "gpt-image-2"
+    default_size: str = "1024x1024"
+    default_quality: str = "standard"  # "standard" or "hd"
+    default_style: str = ""  # "vivid" or "natural" (DALL-E 3 only)
+    request_timeout: int = 120  # seconds
+    max_retries: int = 3
+    retry_delay: int = 5
+    max_images_per_request: int = 1
+
+    @classmethod
+    def from_env(cls) -> "OpenAIConfig":
+        """Load configuration from environment variables."""
+        load_env()
+
+        return cls(
+            api_key=os.getenv("OPENAI_API_KEY") or os.getenv("GPT"),
+            base_url=os.getenv("OPENAI_BASE_URL") or os.getenv("GPTBASEURL", "https://api.openai.com"),
+            default_model=os.getenv("OPENAI_MODEL", "gpt-image-2"),
+            default_size=os.getenv("OPENAI_SIZE", "1024x1024"),
+            default_quality=os.getenv("OPENAI_QUALITY", "standard"),
+            default_style=os.getenv("OPENAI_STYLE", ""),
+            request_timeout=int(os.getenv("OPENAI_TIMEOUT", "120")),
+            max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
+            retry_delay=int(os.getenv("OPENAI_RETRY_DELAY", "5")),
+        )
+
+    def validate_credentials(self) -> bool:
+        """Validate that required credentials are present."""
+        return bool(self.api_key and self.base_url)
